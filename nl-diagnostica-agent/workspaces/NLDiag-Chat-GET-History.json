@@ -1,0 +1,64 @@
+{
+  "name": "NLDiag-Chat-GET-History",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "nldiag-history",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f0e912fa-0002-4002-8002-4da49b4c0001",
+      "name": "When called - GET history",
+      "position": [-48, -160],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "nldiag-history"
+    },
+    {
+      "parameters": {
+        "jsCode": "const q = $input.first().json.query || $input.first().json.queryString || {};\nconst sessionId = q.sessionId;\nconst userId    = q.userId;\nif (!sessionId) throw new Error('sessionId query parameter is required');\nif (!userId)    throw new Error('userId query parameter is required');\nreturn { sessionId, userId };"
+      },
+      "id": "5cce0324-0002-4002-8002-36998b6c0001",
+      "name": "Extract Params",
+      "position": [176, -160],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM nl_chat_message\nWHERE session_id = '{{ $json.sessionId }}'\n  AND user_id    = '{{ $json.userId }}'::uuid\nORDER BY id ASC;",
+        "options": {}
+      },
+      "id": "aadba430-0002-4002-8002-cbea62bc0001",
+      "name": "Get History from DB",
+      "position": [400, -160],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "113b5105-0002-4002-8002-68a8b4cc0001",
+      "name": "Return History",
+      "position": [624, -160],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When called - GET history": { "main": [[{ "node": "Extract Params", "type": "main", "index": 0 }]] },
+    "Extract Params": { "main": [[{ "node": "Get History from DB", "type": "main", "index": 0 }]] },
+    "Get History from DB": { "main": [[{ "node": "Return History", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1", "binaryMode": "separate", "availableInMCP": false },
+  "id": "NLDiagChatHistory",
+  "tags": []
+}

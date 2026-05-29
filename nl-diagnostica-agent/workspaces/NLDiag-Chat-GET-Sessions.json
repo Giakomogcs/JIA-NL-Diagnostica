@@ -1,0 +1,64 @@
+{
+  "name": "NLDiag-Chat-GET-Sessions",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "nldiag-sessions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b41fdce6-0001-4001-8001-495900000001",
+      "name": "When called - GET sessions",
+      "position": [224, -112],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "nldiag-sessions"
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $input.first().json.query?.userId || $input.first().json.queryString?.userId;\nif (!userId) {\n  throw new Error('userId query parameter is required');\n}\nreturn { userId };"
+      },
+      "id": "3aa10001-0000-4000-8000-000000000001",
+      "name": "Extract User ID",
+      "position": [368, -112],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  cm.session_id,\n  MIN(cm.created_at) AS data_inicio,\n  (SELECT cm2.message->>'content'\n     FROM nl_chat_message cm2\n    WHERE cm2.session_id = cm.session_id\n      AND cm2.message->>'type' = 'human'\n    ORDER BY cm2.id DESC\n    LIMIT 1) AS titulo\nFROM nl_chat_message cm\nWHERE cm.user_id = '{{ $json.userId }}'::uuid\nGROUP BY cm.session_id\nORDER BY data_inicio DESC;",
+        "options": {}
+      },
+      "id": "378216df-0001-4001-8001-0bcbe8760001",
+      "name": "List Sessions from DB",
+      "position": [560, -112],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "f8f6ccc5-0001-4001-8001-69d715bc0001",
+      "name": "Return Sessions",
+      "position": [768, -112],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When called - GET sessions": { "main": [[{ "node": "Extract User ID", "type": "main", "index": 0 }]] },
+    "Extract User ID": { "main": [[{ "node": "List Sessions from DB", "type": "main", "index": 0 }]] },
+    "List Sessions from DB": { "main": [[{ "node": "Return Sessions", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1", "binaryMode": "separate", "availableInMCP": false },
+  "id": "NLDiagChatSessions",
+  "tags": []
+}

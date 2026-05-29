@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NL Diagnóstica — Editais de Licitação</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root{
+    /* Paleta da marca NL Diagnóstica (laranja institucional) */
+    --bg:#f4f6f9; --panel:#ffffff; --card:#ffffff; --line:#e6eaf0;
+    --txt:#1f2a37; --muted:#6b7785;
+    --pri:#f7941e; --pri2:#e07c12; --pri-soft:#fff3e3;
+    --brand1:#b85c0a; --brand2:#8f4205;  /* gradiente da barra/marca (escuro p/ contraste) */
+    --ok:#16a34a; --okbg:#e8f7ee; --no:#dc2626; --nobg:#fdeaea;
+    --warn:#d97706; --chip:#f3f5f8;
+    --shadow:0 1px 2px rgba(16,24,40,.04),0 4px 16px rgba(16,24,40,.06);
+    --sidebar-width:248px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+  a{color:var(--pri2)}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:8px 14px;font-weight:600;transition:background .15s,color .15s}
+  .btn-pri{background:var(--pri);color:#fff} .btn-pri:hover{background:var(--pri2)}
+  .btn-ok{background:var(--ok);color:#fff} .btn-ok:hover{filter:brightness(.95)}
+  .btn-no{background:var(--no);color:#fff} .btn-no:hover{filter:brightness(.95)}
+  .btn-ghost{background:#fff;color:var(--txt);border:1px solid var(--line)} .btn-ghost:hover{background:var(--chip)}
+  input,select,textarea{background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:14px;width:100%}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-soft)}
+  .hidden{display:none!important}
+  /* marca / logo */
+  .logo-mark{display:flex;align-items:center;gap:10px}
+  .logo-mark img{height:34px;display:block}
+  .logo-mark .wm{display:flex;flex-direction:column;line-height:1}
+  .logo-mark .wm b{font-weight:800;letter-spacing:.5px;font-size:17px}
+  .logo-mark .wm small{font-size:9.5px;letter-spacing:2px;opacity:.85;text-transform:uppercase}
+  /* login */
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#fff7ee 0%,#f4f6f9 55%)}
+  .login-card{background:var(--card);border:1px solid var(--line);border-radius:16px;width:380px;overflow:hidden;box-shadow:var(--shadow)}
+  .login-head{background:linear-gradient(135deg,var(--brand1),var(--brand2));padding:26px 28px;color:#fff}
+  .login-head img{height:46px;display:block;margin-bottom:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+  .login-head h1{font-size:18px;margin:0;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+  .login-head p{margin:2px 0 0;font-size:12.5px;opacity:1;color:#ffe9d2}
+  .login-body{padding:26px 28px}
+  .login-body label{display:block;margin:12px 0 4px;color:var(--muted);font-size:12px}
+  .err{color:#b91c1c;font-size:13px;margin-top:10px;min-height:18px}
+  /* ===== app shell: topbar + sidebar (estilo Rubbercity) ===== */
+  #app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+  .topbar{display:flex;align-items:center;gap:14px;padding:0 18px;height:60px;background:linear-gradient(135deg,var(--brand1),var(--brand2));color:#fff;z-index:30;box-shadow:0 2px 10px rgba(243,113,33,.25);flex-shrink:0}
+  .topbar .logo-mark .wm{color:#fff}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .role-pill{font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff}
+  .toggle-sidebar-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.4);color:#fff;width:40px;height:40px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
+  .toggle-sidebar-btn:hover{background:rgba(255,255,255,.28)}
+  .toggle-sidebar-btn svg{width:18px;height:18px}
+
+  .main-grid{display:grid;flex:1;overflow:hidden;grid-template-columns:var(--sidebar-width) 1fr;transition:grid-template-columns .3s ease;position:relative}
+  .main-grid.sidebar-closed{grid-template-columns:0 1fr}
+
+  #sidebar{background:var(--card);border-right:2px solid var(--pri);display:flex;flex-direction:column;overflow:hidden}
+  #sidebar-header{padding:16px 16px 12px;border-bottom:1px solid var(--line)}
+  #sidebar-header .sb-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .sidebar-nav{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:4px}
+  .sidebar-nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;justify-content:flex-start;padding:11px 12px;border-radius:8px;background:transparent;color:var(--txt);font-weight:600;font-size:13.5px;border-left:3px solid transparent}
+  .sidebar-nav button svg{width:17px;height:17px;color:var(--muted);flex-shrink:0}
+  .sidebar-nav button:hover{background:var(--chip)}
+  .sidebar-nav button.active{background:var(--pri-soft);color:var(--pri2);border-left-color:var(--pri)}
+  .sidebar-nav button.active svg{color:var(--pri2)}
+
+  .sidebar-footer{padding:14px;border-top:1px solid var(--line);background:#fafbfd;margin-top:auto}
+  .user-profile{display:flex;align-items:center;gap:11px;padding:8px;background:var(--chip);border-radius:8px}
+  .user-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--brand1),var(--brand2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+  .user-info{flex:1;overflow:hidden}
+  .user-name{font-size:13px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .user-role{font-size:11px;color:var(--muted)}
+  .footer-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .footer-btn{flex:1;padding:9px;border:1px solid var(--line);background:#fff;color:var(--txt);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-size:12.5px;font-weight:600}
+  .footer-btn svg{width:14px;height:14px}
+  .footer-btn:hover{background:var(--pri-soft);color:var(--pri2);border-color:var(--pri)}
+
+  #content{overflow:auto;padding:22px 20px}
+  #content > section{max-width:1400px;margin:0 auto}
+
+  .sidebar-backdrop{display:none}
+  @media (max-width:768px){
+    .main-grid{grid-template-columns:1fr}
+    .main-grid.sidebar-closed{grid-template-columns:1fr}
+    #sidebar{position:absolute;left:0;top:0;width:260px;height:100%;z-index:200;box-shadow:2px 0 12px rgba(16,24,40,.25);transition:transform .3s ease;transform:translateX(-100%)}
+    .main-grid:not(.sidebar-closed) #sidebar{transform:translateX(0)}
+    .sidebar-backdrop{display:none;position:absolute;inset:0;background:rgba(16,24,40,.5);z-index:199;pointer-events:none}
+    .main-grid:not(.sidebar-closed) .sidebar-backdrop{display:block;pointer-events:auto}
+  }
+  h2{color:var(--txt)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow);border-top:3px solid var(--pri)}
+  .stat .n{font-size:26px;font-weight:800;color:var(--pri2)} .stat .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
+  .toolbar .f{display:flex;flex-direction:column;gap:4px}
+  .toolbar .f label{font-size:11px;color:var(--muted)}
+  .toolbar .f.search{flex:1;min-width:200px}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
+  th{background:#fbfcfe;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#fff8f0}
+  .tag{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+  .tag.novo{color:#2563eb;border-color:#bfdbfe;background:#eff6ff}
+  .tag.sug_a{color:#15803d;border-color:#bbf7d0;background:#f0fdf4}
+  .tag.sug_r{color:#b91c1c;border-color:#fecaca;background:#fef2f2}
+  .tag.aceito{background:var(--okbg);color:#15803d;border-color:#bbf7d0}
+  .tag.recusado{background:var(--nobg);color:#b91c1c;border-color:#fecaca}
+  .tag.analisando{color:var(--warn);border-color:#fde68a;background:#fffbeb}
+  .modo{font-size:11px;color:var(--muted)}
+  .score-bar{height:6px;background:var(--chip);border-radius:4px;overflow:hidden;width:70px}
+  .score-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand1),var(--brand2))}
+  .row-actions{display:flex;gap:6px}
+  .row-actions button{padding:5px 9px;font-size:12px}
+  .pager{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:12px;color:var(--muted)}
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(16,24,40,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:14px;max-width:900px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(16,24,40,.25)}
+  .modal header{position:sticky;top:0;background:linear-gradient(135deg,var(--brand1),var(--brand2));color:#fff;height:auto;padding:14px 18px;display:flex;align-items:center;gap:10px;box-shadow:none}
+  .modal .body{padding:20px}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:16px}
+  .kv div{background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .kv .k{font-size:11px;color:var(--muted)} .kv .v{font-weight:600}
+  .close{margin-left:auto;background:rgba(255,255,255,.2);color:#fff;font-size:18px;padding:2px 10px;border-radius:8px}
+  .close:hover{background:rgba(255,255,255,.35)}
+  /* chat */
+  .chat-wrap{display:grid;grid-template-columns:240px 1fr;gap:14px;height:calc(100vh - 130px)}
+  .sessions{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto;box-shadow:var(--shadow)}
+  .sessions .s{padding:8px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sessions .s:hover,.sessions .s.active{background:var(--pri-soft);color:var(--pri2)}
+  .chat{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+  .msgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:80%;padding:10px 14px;border-radius:12px;white-space:pre-wrap;line-height:1.5}
+  .msg.u{align-self:flex-end;background:var(--pri);color:#fff}
+  .msg.a{align-self:flex-start;background:var(--chip);border:1px solid var(--line)}
+  .composer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+  .composer textarea{resize:none;height:44px}
+  .muted{color:var(--muted)} .right-align{text-align:right}
+  .pill-link{font-size:12px}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  .badge{font-size:10px;padding:1px 6px;border-radius:6px;background:var(--chip);border:1px solid var(--line);color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="login-card">
+    <div class="login-head">
+      <img id="logoLogin" alt="NL Diagnóstica" />
+      <h1>Editais de Licitação Integrada</h1>
+      <p>Acesso restrito · uso interno</p>
+    </div>
+    <div class="login-body">
+      <form id="loginForm">
+        <label>E-mail</label>
+        <input id="email" type="email" autocomplete="username" required />
+        <label>Senha</label>
+        <input id="password" type="password" autocomplete="current-password" required />
+        <div style="margin-top:18px"><button class="btn-pri" style="width:100%" type="submit">Entrar</button></div>
+        <div class="err" id="loginErr"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <header class="topbar">
+    <button class="toggle-sidebar-btn" id="toggleSidebarBtn" title="Alternar menu">
+      <i data-lucide="panel-left"></i>
+    </button>
+    <div class="logo-mark">
+      <img id="logoHeader" alt="NL Diagnóstica" />
+      <div class="wm"><b>NL Diagnóstica</b><small>Editais</small></div>
+    </div>
+    <div class="right">
+      <span class="role-pill" id="userPill"></span>
+    </div>
+  </header>
+
+  <div class="main-grid" id="mainGrid">
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div id="sidebar-header"><span class="sb-title">Menu</span></div>
+      <nav id="nav" class="sidebar-nav">
+        <button data-view="editais" class="active"><i data-lucide="file-text"></i><span>Editais</span></button>
+        <button data-view="catalogo" class="admin-only"><i data-lucide="package"></i><span>Catálogo</span></button>
+        <button data-view="documentos" class="admin-only"><i data-lucide="folder-open"></i><span>Documentos</span></button>
+        <button data-view="usuarios" class="admin-only"><i data-lucide="users"></i><span>Usuários</span></button>
+        <button data-view="chat"><i data-lucide="message-square"></i><span>Assistente IA</span></button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <div class="user-avatar" id="userAvatar">--</div>
+          <div class="user-info">
+            <div class="user-name" id="userName">...</div>
+            <div class="user-role" id="userRole">...</div>
+          </div>
+        </div>
+        <div class="footer-actions">
+          <button class="footer-btn" id="logoutBtn" title="Sair do sistema">
+            <i data-lucide="log-out"></i><span>Sair</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main id="content">
+    <!-- EDITAIS -->
+    <section id="view-editais">
+      <div class="cards" id="statCards"></div>
+      <div class="toolbar">
+        <div class="f"><label>Status</label>
+          <select id="fStatus">
+            <option value="">Todos</option>
+            <option value="novo">Novos</option>
+            <option value="analisando">Analisando</option>
+            <option value="sugerido_aceitar">Sugeridos p/ aceitar</option>
+            <option value="sugerido_recusar">Sugeridos p/ recusar</option>
+            <option value="aceito">Aceitos</option>
+            <option value="recusado">Recusados</option>
+          </select>
+        </div>
+        <div class="f"><label>UF</label><input id="fUf" maxlength="2" placeholder="SP" style="width:70px" /></div>
+        <div class="f search"><label>Busca (objeto / órgão / nº)</label><input id="fSearch" placeholder="Buscar..." /></div>
+        <div class="f"><label>&nbsp;</label><button class="btn-pri" id="btnFilter">Filtrar</button></div>
+        <div class="f"><label>&nbsp;</label><button class="btn-ghost" id="btnPull" title="Buscar novos editais na Effecti">↻ Buscar Effecti</button></div>
+      </div>
+      <div id="editaisTable"></div>
+      <div class="pager">
+        <button class="btn-ghost" id="prevPage">‹ Anterior</button>
+        <span id="pageInfo"></span>
+        <button class="btn-ghost" id="nextPage">Próxima ›</button>
+      </div>
+    </section>
+
+    <!-- CATALOGO -->
+    <section id="view-catalogo" class="hidden">
+      <div style="display:flex;align-items:center;margin-bottom:12px">
+        <h2 style="margin:0">Catálogo de produtos/serviços</h2>
+        <button class="btn-pri" id="btnAddCat" style="margin-left:auto">+ Adicionar</button>
+      </div>
+      <p class="muted">O catálogo define o que a empresa oferece. O sistema cruza os itens dos editais com estas palavras-chave para decidir participação.</p>
+      <div id="catTable"></div>
+    </section>
+
+    <!-- DOCUMENTOS -->
+    <section id="view-documentos" class="hidden">
+      <div style="display:flex;align-items:center;margin-bottom:12px">
+        <h2 style="margin:0">Documentos (RAG)</h2>
+        <button class="btn-pri" id="btnAddDoc" style="margin-left:auto">+ Adicionar documento</button>
+      </div>
+      <p class="muted">Base de conhecimento do assistente. Todos os usuários autenticados consultam via IA (sem restrição por equipe).</p>
+      <div id="docTable"></div>
+    </section>
+
+    <!-- USUARIOS -->
+    <section id="view-usuarios" class="hidden">
+      <div style="display:flex;align-items:center;margin-bottom:12px">
+        <h2 style="margin:0">Usuários</h2>
+        <button class="btn-pri" id="btnAddUser" style="margin-left:auto">+ Adicionar usuário</button>
+      </div>
+      <div id="userTable"></div>
+    </section>
+
+    <!-- CHAT -->
+    <section id="view-chat" class="hidden">
+      <div class="chat-wrap">
+        <div class="sessions">
+          <button class="btn-pri" style="width:100%;margin-bottom:8px" id="newChat">+ Nova conversa</button>
+          <div id="sessionList"></div>
+        </div>
+        <div class="chat">
+          <div class="msgs" id="msgs"><div class="empty">Pergunte sobre os editais: "liste os editais novos", "esse edital faz sentido?", "recuse o 90020 por localidade".</div></div>
+          <div class="composer">
+            <textarea id="chatInput" placeholder="Escreva sua mensagem..."></textarea>
+            <button class="btn-pri" id="sendChat">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ============ CONFIG ============ */
+const CONFIG = {
+  SUPABASE_URL:  "https://longflatworm-supabase.cloudfy.live",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzczNjY1NzE2LCJleHAiOjE4MDUyMDE3MTZ9.nM55mAkSiyvvaIoUACEw4pY4GSJVfvrMX7b1q5JVwyg",
+  // base dos webhooks n8n, ex.: https://seu-n8n.cloudfy.live/webhook
+  N8N_BASE: "https://longflatworm-n8n.cloudfy.live/webhook"
+};
+const COMPANY = "nldiagnostica";
+const MOTIVOS_EFFECTI = ["FALTA_CAPACIDADE_TECNICA","LOCALIDADE_ENTREGA","VALOR_ESTIMADO_BAIXO","DOCUMENTACAO_INSUFICIENTE","PRAZO_ENTREGA_CURTO","OUTROS"];
+
+/* ============ logo da marca (embutido) ============ */
+const LOGO = "data:image/png;base64,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";
+document.addEventListener('DOMContentLoaded', ()=>{
+  const a=document.getElementById('logoLogin'); if(a) a.src=LOGO;
+  const b=document.getElementById('logoHeader'); if(b) b.src=LOGO;
+  if(window.lucide) lucide.createIcons();
+});
+
+/* ============ resilient storage (iframe/webhook safe) ============ */
+(function(){
+  try { window.localStorage.setItem('__t','1'); window.localStorage.removeItem('__t'); }
+  catch(e){
+    const mem={}; const fake={getItem:k=>k in mem?mem[k]:null,setItem:(k,v)=>{mem[k]=String(v)},removeItem:k=>{delete mem[k]},clear:()=>{for(const k in mem)delete mem[k]},key:i=>Object.keys(mem)[i]||null,get length(){return Object.keys(mem).length}};
+    try{Object.defineProperty(window,'localStorage',{value:fake,configurable:true})}catch(_){}
+  }
+  if(!('locks' in navigator)){ try{Object.defineProperty(navigator,'locks',{value:{request:async(n,o,cb)=>cb?cb():undefined,query:async()=>({held:[],pending:[]})},configurable:true})}catch(_){}}
+})();
+
+const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
+  auth:{ storageKey:'nldiag-auth', persistSession:true, autoRefreshToken:true, detectSessionInUrl:false }
+});
+
+/* ============ state ============ */
+let ME = null;           // { id, email, full_name, role }
+let isAdmin = false;
+let page = 0; const PAGE_SIZE = 25; let totalCount = 0;
+let curSession = null;
+
+const $ = s => document.querySelector(s);
+const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('pt-BR'); };
+const fmtMoney = v => v==null?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+// parse defensivo: webhooks n8n podem responder 200 com corpo vazio quando não há dados
+const safeJson = async r => { const t = await r.text(); if(!t || !t.trim()) return null; try{ return JSON.parse(t); }catch(_){ return null; } };
+const stripCtx = s => (s==null?'':String(s)).replace(/^\s*\[CONTEXTO[^\]]*\]\s*/i,'');
+const mdLite = s => esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+
+/* ============ auth ============ */
+async function handleSession(session){
+  if(!session){ showLogin(); return; }
+  const u = session.user;
+  const meta = u.user_metadata || {};
+  if(meta.company_name !== COMPANY){ await sb.auth.signOut(); showLogin('Usuário sem acesso à NL Diagnostica.'); return; }
+  ME = { id:u.id, email:u.email, full_name:meta.full_name||u.email, role:meta.role||'visualizacao' };
+  isAdmin = ME.role === 'admin';
+  showApp();
+}
+function showLogin(msg){ $('#login').classList.remove('hidden'); $('#app').classList.add('hidden'); if(msg) $('#loginErr').textContent=msg; }
+function showApp(){
+  $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
+  const nm = ME.full_name || ME.email || 'Usuário';
+  const initials = nm.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2) || 'NL';
+  $('#userPill').textContent = `${nm} · ${isAdmin?'Admin':'Visualização'}`;
+  if($('#userAvatar')) $('#userAvatar').textContent = initials;
+  if($('#userName')) $('#userName').textContent = nm;
+  if($('#userRole')) $('#userRole').textContent = isAdmin?'Administrador':'Visualização';
+  document.querySelectorAll('.admin-only').forEach(b=> b.style.display = isAdmin?'':'none');
+  if(window.lucide) lucide.createIcons();
+  switchView('editais');
+}
+
+$('#loginForm').addEventListener('submit', async e=>{
+  e.preventDefault(); $('#loginErr').textContent='';
+  const { error } = await sb.auth.signInWithPassword({ email:$('#email').value.trim(), password:$('#password').value });
+  if(error) $('#loginErr').textContent = 'Falha no login: '+error.message;
+});
+$('#logoutBtn').addEventListener('click', ()=> sb.auth.signOut());
+sb.auth.onAuthStateChange((_e,s)=> handleSession(s));
+sb.auth.getSession().then(({data})=> handleSession(data.session));
+
+/* ============ navigation ============ */
+function switchView(v){
+  document.querySelectorAll('#nav button').forEach(b=> b.classList.toggle('active', b.dataset.view===v));
+  ['editais','catalogo','documentos','usuarios','chat'].forEach(x=> $('#view-'+x).classList.toggle('hidden', x!==v));
+  if(v==='editais'){ loadStats(); loadEditais(); }
+  if(v==='catalogo') loadCatalogo();
+  if(v==='documentos') loadDocs();
+  if(v==='usuarios') loadUsers();
+  if(v==='chat') loadSessions();
+}
+document.querySelectorAll('#nav button').forEach(b=> b.addEventListener('click', ()=>{ switchView(b.dataset.view); if(window.innerWidth<=768) mainGrid.classList.add('sidebar-closed'); }));
+
+/* ---- sidebar toggle + mobile ---- */
+const mainGrid = document.getElementById('mainGrid');
+const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+if(toggleSidebarBtn) toggleSidebarBtn.addEventListener('click', ()=>{ mainGrid.classList.toggle('sidebar-closed'); });
+if(sidebarBackdrop) sidebarBackdrop.addEventListener('click', ()=>{ mainGrid.classList.add('sidebar-closed'); });
+function checkMobileSidebar(){ if(window.innerWidth<=768){ mainGrid.classList.add('sidebar-closed'); } else { mainGrid.classList.remove('sidebar-closed'); } }
+checkMobileSidebar();
+window.addEventListener('resize', checkMobileSidebar);
+
+/* ============ EDITAIS ============ */
+async function loadStats(){
+  const { data, error } = await sb.rpc('nl_stats');
+  if(error){ console.error(error); return; }
+  const s = data || {};
+  const items = [
+    ['Novos','novos'],['Sugeridos aceitar','sugerido_aceitar'],['Sugeridos recusar','sugerido_recusar'],
+    ['Aceitos','aceitos'],['Recusados','recusados'],['Pend. sync Effecti','pendentes_sync'],['Total','total']
+  ];
+  $('#statCards').innerHTML = items.map(([l,k])=>`<div class="stat"><div class="n">${s[k]??0}</div><div class="l">${l}</div></div>`).join('');
+}
+async function loadEditais(){
+  const params = {
+    p_status: $('#fStatus').value || null,
+    p_uf: ($('#fUf').value||'').trim().toUpperCase() || null,
+    p_search: ($('#fSearch').value||'').trim() || null,
+    p_batch: null, p_limit: PAGE_SIZE, p_offset: page*PAGE_SIZE
+  };
+  const { data, error } = await sb.rpc('nl_dashboard_editais', params);
+  if(error){ $('#editaisTable').innerHTML = `<div class="empty">Erro: ${esc(error.message)}</div>`; return; }
+  const rows = data||[];
+  totalCount = rows.length ? Number(rows[0].total_count) : 0;
+  if(!rows.length){ $('#editaisTable').innerHTML = `<div class="empty">Nenhum edital encontrado.</div>`; }
+  else {
+    $('#editaisTable').innerHTML = `<table><thead><tr>
+      <th>Nº edital</th><th>Órgão</th><th>UF</th><th>Data licitação</th><th>Modo</th><th>Score</th><th>Status</th><th>Links</th><th></th>
+    </tr></thead><tbody>${rows.map(rowHtml).join('')}</tbody></table>`;
+    bindRowActions(rows);
+  }
+  const totalPages = Math.max(1, Math.ceil(totalCount/PAGE_SIZE));
+  $('#pageInfo').textContent = `Página ${page+1} de ${totalPages} · ${totalCount} editais`;
+  $('#prevPage').disabled = page<=0; $('#nextPage').disabled = page+1>=totalPages;
+}
+function statusTag(st){
+  const map={novo:['novo','Novo'],analisando:['analisando','Analisando'],sugerido_aceitar:['sug_a','Sug. aceitar'],sugerido_recusar:['sug_r','Sug. recusar'],aceito:['aceito','Aceito'],recusado:['recusado','Recusado']};
+  const [c,l]=map[st]||['','—']; return `<span class="tag ${c}">${l}</span>`;
+}
+function rowHtml(r){
+  const score = Math.round((r.score_match||0)*100);
+  const links = `${r.url_edital?`<a class="pill-link" href="${esc(r.url_edital)}" target="_blank" rel="noopener">edital ↗</a>`:''}${r.url_portal&&r.url_portal!==r.url_edital?` · <a class="pill-link" href="${esc(r.url_portal)}" target="_blank" rel="noopener">portal ↗</a>`:''}${r.portal_nome?`<div class="badge">${esc(r.portal_nome)}</div>`:''}`;
+  const decided = r.status==='aceito'||r.status==='recusado';
+  const acts = decided ? `<button class="btn-ghost" data-act="view" data-id="${r.id}">ver</button>` :
+    `<div class="row-actions">
+       <button class="btn-ghost" data-act="view" data-id="${r.id}">ver</button>
+       <button class="btn-ok" data-act="accept" data-id="${r.id}" data-lic="${r.id_licitacao||''}">aceitar</button>
+       <button class="btn-no" data-act="reject" data-id="${r.id}" data-lic="${r.id_licitacao||''}">recusar</button>
+     </div>`;
+  return `<tr>
+    <td><strong>${esc(r.numero_edital||'—')}</strong><div class="modo">${esc(r.modalidade||'')}</div></td>
+    <td>${esc(r.orgao||'—')}<div class="modo">${esc((r.objeto||'').slice(0,70))}${(r.objeto||'').length>70?'…':''}</div></td>
+    <td>${esc(r.uf||'—')}</td>
+    <td>${fmtDate(r.data_abertura)}</td>
+    <td><span class="modo">${esc(r.modo_participacao||'—')}</span><div class="badge">${r.itens_participa}/${r.itens_total} itens</div></td>
+    <td><div class="score-bar"><i style="width:${score}%"></i></div><span class="modo">${score}%</span></td>
+    <td>${statusTag(r.status)}</td>
+    <td>${links}</td>
+    <td>${acts}</td>
+  </tr>`;
+}
+function bindRowActions(rows){
+  document.querySelectorAll('#editaisTable [data-act]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const id=b.dataset.id;
+      if(b.dataset.act==='view') return openEdital(id);
+      if(b.dataset.act==='accept') return decide(id, b.dataset.lic, 'aceitar');
+      if(b.dataset.act==='reject') return openRejectModal(id, b.dataset.lic);
+    });
+  });
+}
+$('#btnFilter').addEventListener('click', ()=>{ page=0; loadEditais(); });
+$('#prevPage').addEventListener('click', ()=>{ if(page>0){page--; loadEditais();} });
+$('#nextPage').addEventListener('click', ()=>{ page++; loadEditais(); });
+$('#btnPull').addEventListener('click', async ()=>{
+  $('#btnPull').disabled=true; $('#btnPull').textContent='Buscando...';
+  try{ await fetch(`${CONFIG.N8N_BASE}/nldiag-effecti-pull`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); toast('Busca disparada. Os novos editais aparecerão em instantes.'); }
+  catch(e){ toast('Falha ao disparar busca: '+e.message); }
+  setTimeout(()=>{ $('#btnPull').disabled=false; $('#btnPull').textContent='↻ Buscar Effecti'; loadStats(); loadEditais(); }, 4000);
+});
+
+/* ---- decision ---- */
+async function decide(editalId, idLic, acao, motivo, motivoEffecti){
+  const { data, error } = await sb.rpc('nl_record_decision', {
+    p_edital_id: editalId, p_acao: acao, p_motivo: motivo||null,
+    p_motivo_effecti: motivoEffecti||null, p_origem:'humano'
+  });
+  if(error){ toast('Erro ao registrar decisão: '+error.message); return; }
+  const lic = idLic || (data && data.id_licitacao);
+  if(lic){
+    try{
+      await fetch(`${CONFIG.N8N_BASE}/nldiag-effecti-sync`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ idLicitacao:Number(lic), acao, motivo:motivo||'', motivoEffecti:motivoEffecti||'OUTROS' })});
+    }catch(e){ toast('Decisão salva, mas falhou sincronizar com a Effecti: '+e.message); }
+  }
+  closeModal(); toast(acao==='aceitar'?'Edital aceito (favoritado na Effecti).':'Edital recusado.');
+  loadStats(); loadEditais();
+}
+function openRejectModal(editalId, idLic){
+  openModal(`<header><strong>Recusar edital</strong><button class="close">×</button></header><div class="body">
+    <label class="muted">Motivo (Effecti)</label>
+    <select id="rjMotivo">${MOTIVOS_EFFECTI.map(m=>`<option value="${m}">${m.replace(/_/g,' ')}</option>`).join('')}</select>
+    <label class="muted" style="margin-top:10px;display:block">Observação (opcional)</label>
+    <textarea id="rjObs" rows="3" placeholder="Detalhe o motivo..."></textarea>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-ghost" id="rjCancel">Cancelar</button>
+      <button class="btn-no" id="rjConfirm">Confirmar recusa</button>
+    </div></div>`);
+  $('#rjCancel').onclick=closeModal;
+  $('#rjConfirm').onclick=()=> decide(editalId, idLic, 'recusar', $('#rjObs').value.trim(), $('#rjMotivo').value);
+}
+
+/* ---- edital detail ---- */
+async function openEdital(id){
+  const { data, error } = await sb.rpc('nl_get_edital', { p_edital_id:id });
+  if(error){ toast('Erro: '+error.message); return; }
+  const e = data.edital, items = data.itens||[];
+  const decided = e.status==='aceito'||e.status==='recusado';
+  // group items by lote
+  const lotes = {};
+  items.forEach(it=>{ const k=it.lote||'—'; (lotes[k]=lotes[k]||[]).push(it); });
+  const loteHtml = Object.entries(lotes).map(([lote,its])=>{
+    const all = its.every(i=>i.participa), some = its.some(i=>i.participa);
+    const cov = lote==='—'?'':`<div class="badge" style="margin-bottom:6px">Lote ${esc(lote)} — ${all?'fornecível 100%':some?'parcial':'fora de escopo'}</div>`;
+    const rows = its.map(it=>`<tr>
+      <td>${esc(it.item_num??'')}</td>
+      <td>${esc((it.produto_licitado||'').slice(0,160))}</td>
+      <td>${it.quantidade??''} ${esc(it.unidade||'')}</td>
+      <td>${it.catalogo_descricao?`<span class="tag sug_a">${esc(it.catalogo_descricao)}</span>`:'<span class="muted">—</span>'}</td>
+      <td>${Math.round((it.match_score||0)*100)}%</td>
+      <td>${it.participa?'<span class="tag sug_a">sim</span>':'<span class="tag sug_r">não</span>'}
+          ${!decided?`<button class="btn-ghost" style="padding:2px 6px;font-size:11px" data-toggle="${it.id}" data-cur="${it.participa?1:0}">⇄</button>`:''}</td>
+    </tr>`).join('');
+    return `${cov}<table style="margin-bottom:14px"><thead><tr><th>Item</th><th>Produto licitado</th><th>Qtd</th><th>Catálogo</th><th>Match</th><th>Participa</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }).join('');
+  openModal(`<header><strong>Edital ${esc(e.numero_edital||'')}</strong> ${statusTag(e.status)}<button class="close">×</button></header>
+   <div class="body">
+    <div class="kv">
+      <div><div class="k">Órgão</div><div class="v">${esc(e.orgao||'—')}</div></div>
+      <div><div class="k">UF</div><div class="v">${esc(e.uf||'—')}</div></div>
+      <div><div class="k">Modalidade</div><div class="v">${esc(e.modalidade||'—')}</div></div>
+      <div><div class="k">Data da licitação</div><div class="v">${fmtDate(e.data_abertura)}</div></div>
+      <div><div class="k">Valor estimado</div><div class="v">${fmtMoney(e.valor_total_estimado)}</div></div>
+      <div><div class="k">Modo sugerido</div><div class="v">${esc(e.modo_participacao||'—')} (score ${Math.round((e.score_match||0)*100)}%)</div></div>
+      <div><div class="k">Portal</div><div class="v">${esc(e.portal_nome||'—')}</div></div>
+      <div><div class="k">Links</div><div class="v">${e.url_edital?`<a href="${esc(e.url_edital)}" target="_blank" rel="noopener">edital ↗</a>`:'—'}</div></div>
+    </div>
+    <div style="margin-bottom:12px"><div class="k muted">Objeto</div>${esc(e.objeto||'—')}</div>
+    ${e.justificativa_ia?`<div class="badge" style="margin-bottom:12px">IA: ${esc(e.justificativa_ia)}</div>`:''}
+    <h3 style="margin:6px 0">Itens / lotes</h3>
+    ${items.length?loteHtml:'<div class="empty">Sem itens.</div>'}
+    ${!decided?`<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+      <button class="btn-no" id="edReject">Recusar</button>
+      <button class="btn-ok" id="edAccept">Aceitar</button></div>`:''}
+   </div>`);
+  document.querySelectorAll('[data-toggle]').forEach(b=> b.onclick=async()=>{
+    await sb.rpc('nl_set_item_participation',{p_item_id:b.dataset.toggle,p_participa:b.dataset.cur!=='1'});
+    openEdital(id);
+  });
+  if(!decided){
+    $('#edAccept').onclick=()=> decide(id, e.id_licitacao, 'aceitar');
+    $('#edReject').onclick=()=> openRejectModal(id, e.id_licitacao);
+  }
+}
+
+/* ============ CATALOGO ============ */
+async function loadCatalogo(){
+  const { data, error } = await sb.rpc('nl_list_catalogo', { p_only_active:false });
+  if(error){ $('#catTable').innerHTML=`<div class="empty">Erro: ${esc(error.message)}</div>`; return; }
+  const rows=(data||[]).map(c=>`<tr>
+    <td>${esc(c.linha||'—')}</td><td><strong>${esc(c.descricao)}</strong><div class="modo">${esc(c.finalidade||'')}</div></td>
+    <td>${esc(c.tipo)}</td>
+    <td>${(c.palavras_chave||[]).map(k=>`<span class="badge">${esc(k)}</span>`).join(' ')}</td>
+    <td>${c.ativo?'<span class="tag sug_a">ativo</span>':'<span class="tag sug_r">inativo</span>'}</td>
+    <td class="row-actions"><button class="btn-ghost" data-edit='${esc(JSON.stringify(c))}'>editar</button><button class="btn-no" data-del="${c.id}">excluir</button></td>
+  </tr>`).join('');
+  $('#catTable').innerHTML = rows?`<table><thead><tr><th>Linha</th><th>Descrição</th><th>Tipo</th><th>Palavras-chave</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Catálogo vazio.</div>';
+  document.querySelectorAll('#catTable [data-del]').forEach(b=> b.onclick=async()=>{ if(confirm('Excluir item do catálogo?')){ await sb.rpc('nl_admin_delete_catalogo',{p_id:b.dataset.del}); loadCatalogo(); }});
+  document.querySelectorAll('#catTable [data-edit]').forEach(b=> b.onclick=()=> openCatModal(JSON.parse(b.dataset.edit)));
+}
+$('#btnAddCat').addEventListener('click', ()=> openCatModal(null));
+function openCatModal(c){
+  c=c||{};
+  openModal(`<header><strong>${c.id?'Editar':'Novo'} item de catálogo</strong><button class="close">×</button></header><div class="body">
+    <label class="muted">Descrição</label><input id="cD" value="${esc(c.descricao||'')}" />
+    <div class="kv" style="margin-top:10px">
+      <div style="background:none;border:none;padding:0"><label class="muted">Tipo</label><select id="cT"><option value="produto" ${c.tipo==='produto'?'selected':''}>Produto</option><option value="servico" ${c.tipo==='servico'?'selected':''}>Serviço</option></select></div>
+      <div style="background:none;border:none;padding:0"><label class="muted">Linha</label><input id="cL" value="${esc(c.linha||'Hemostasia')}" /></div>
+      <div style="background:none;border:none;padding:0"><label class="muted">Ativo</label><select id="cA"><option value="true" ${c.ativo!==false?'selected':''}>Sim</option><option value="false" ${c.ativo===false?'selected':''}>Não</option></select></div>
+    </div>
+    <label class="muted" style="margin-top:10px;display:block">Finalidade de uso</label><input id="cF" value="${esc(c.finalidade||'')}" />
+    <label class="muted" style="margin-top:10px;display:block">Palavras-chave (separadas por vírgula)</label>
+    <input id="cK" value="${esc((c.palavras_chave||[]).join(', '))}" />
+    <label class="muted" style="margin-top:10px;display:block">Sinônimos (vírgula)</label>
+    <input id="cS" value="${esc((c.sinonimos||[]).join(', '))}" />
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-ghost" id="cCancel">Cancelar</button><button class="btn-pri" id="cSave">Salvar</button></div>
+  </div>`);
+  $('#cCancel').onclick=closeModal;
+  $('#cSave').onclick=async()=>{
+    const split=s=>s.split(',').map(x=>x.trim()).filter(Boolean);
+    const { error } = await sb.rpc('nl_admin_upsert_catalogo',{
+      p_id:c.id||null, p_tipo:$('#cT').value, p_linha:$('#cL').value.trim(), p_descricao:$('#cD').value.trim(),
+      p_finalidade:$('#cF').value.trim(), p_palavras_chave:split($('#cK').value), p_sinonimos:split($('#cS').value),
+      p_marca:null, p_ncm:null, p_registro_anvisa:null, p_ativo:$('#cA').value==='true'
+    });
+    if(error){ toast('Erro: '+error.message); return; }
+    closeModal(); loadCatalogo();
+  };
+}
+
+/* ============ DOCUMENTOS (RAG) ============ */
+async function loadDocs(){
+  try{
+    const r = await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-docs`); const j = await safeJson(r);
+    const docs = (j && (j.docs || (Array.isArray(j)?j:null))) || [];
+    const rows=docs.map(d=>`<tr><td><strong>${esc(d.title||d.file_id)}</strong><div class="modo">${esc(d.file_id)}</div></td>
+      <td>${esc(d.code||'—')}</td><td>${d.chunk_count||0}</td><td>${fmtDate(d.last_indexed_at)}</td>
+      <td><button class="btn-no" data-del="${esc(d.file_id)}">excluir</button></td></tr>`).join('');
+    $('#docTable').innerHTML = rows?`<table><thead><tr><th>Documento</th><th>Código</th><th>Chunks</th><th>Indexado</th><th></th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Nenhum documento.</div>';
+    document.querySelectorAll('#docTable [data-del]').forEach(b=> b.onclick=async()=>{ if(confirm('Excluir documento?')){ await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-doc-delete`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file_id:b.dataset.del})}); loadDocs(); }});
+  }catch(e){ $('#docTable').innerHTML=`<div class="empty">RAG indisponível: ${esc(e.message)}</div>`; }
+}
+$('#btnAddDoc').addEventListener('click', ()=>{
+  openModal(`<header><strong>Adicionar documento</strong><button class="close">×</button></header><div class="body">
+    <label class="muted">ID/código do arquivo</label><input id="dId" placeholder="MANUAL-COAG-01" />
+    <label class="muted" style="margin-top:10px;display:block">Título</label><input id="dTitle" />
+    <label class="muted" style="margin-top:10px;display:block">Conteúdo (texto)</label><textarea id="dText" rows="8" placeholder="Cole aqui o texto do documento..."></textarea>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-ghost" id="dCancel">Cancelar</button><button class="btn-pri" id="dSave">Indexar</button></div>
+  </div>`);
+  $('#dCancel').onclick=closeModal;
+  $('#dSave').onclick=async()=>{
+    const file_id=$('#dId').value.trim(); if(!file_id){toast('Informe o ID');return;}
+    $('#dSave').disabled=true;
+    try{ await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-upsert`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({file_id,title:$('#dTitle').value.trim()||file_id,code:file_id,content_text:$('#dText').value})});
+      closeModal(); loadDocs(); toast('Documento enviado para indexação.');
+    }catch(e){ toast('Erro: '+e.message); $('#dSave').disabled=false; }
+  };
+});
+
+/* ============ USUARIOS ============ */
+async function loadUsers(){
+  const { data, error } = await sb.rpc('nl_admin_list_users');
+  if(error){ $('#userTable').innerHTML=`<div class="empty">Erro: ${esc(error.message)}</div>`; return; }
+  const rows=(data||[]).map(u=>`<tr><td>${esc(u.full_name||'—')}</td><td>${esc(u.email)}</td>
+    <td>${u.role==='admin'?'<span class="tag sug_a">Admin</span>':'<span class="tag">Visualização</span>'}</td>
+    <td>${fmtDate(u.created_at)}</td>
+    <td class="row-actions">
+      <button class="btn-ghost" data-edit='${esc(JSON.stringify(u))}'>perfil</button>
+      ${u.user_id!==ME.id?`<button class="btn-no" data-del="${u.user_id}">excluir</button>`:''}
+    </td></tr>`).join('');
+  $('#userTable').innerHTML=`<table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Criado</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.querySelectorAll('#userTable [data-del]').forEach(b=> b.onclick=async()=>{ if(confirm('Excluir usuário?')){ const {error}=await sb.rpc('nl_admin_delete_user',{p_user_id:b.dataset.del}); if(error)toast(error.message); loadUsers(); }});
+  document.querySelectorAll('#userTable [data-edit]').forEach(b=> b.onclick=()=> openUserEdit(JSON.parse(b.dataset.edit)));
+}
+function openUserEdit(u){
+  openModal(`<header><strong>Perfil de ${esc(u.email)}</strong><button class="close">×</button></header><div class="body">
+    <label class="muted">Nome</label><input id="uName" value="${esc(u.full_name||'')}" />
+    <label class="muted" style="margin-top:10px;display:block">Perfil</label>
+    <select id="uRole"><option value="visualizacao" ${u.role!=='admin'?'selected':''}>Visualização</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option></select>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end"><button class="btn-ghost" id="uCancel">Cancelar</button><button class="btn-pri" id="uSave">Salvar</button></div>
+  </div>`);
+  $('#uCancel').onclick=closeModal;
+  $('#uSave').onclick=async()=>{ const {error}=await sb.rpc('nl_admin_update_user',{p_user_id:u.user_id,p_full_name:$('#uName').value.trim(),p_role:$('#uRole').value}); if(error){toast(error.message);return;} closeModal(); loadUsers(); };
+}
+$('#btnAddUser').addEventListener('click', ()=>{
+  openModal(`<header><strong>Adicionar usuário</strong><button class="close">×</button></header><div class="body">
+    <label class="muted">Nome</label><input id="nName" />
+    <label class="muted" style="margin-top:10px;display:block">E-mail</label><input id="nEmail" type="email" />
+    <label class="muted" style="margin-top:10px;display:block">Senha</label><input id="nPass" type="text" value="@Nldiag2024" />
+    <label class="muted" style="margin-top:10px;display:block">Perfil</label>
+    <select id="nRole"><option value="visualizacao">Visualização</option><option value="admin">Admin</option></select>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end"><button class="btn-ghost" id="nCancel">Cancelar</button><button class="btn-pri" id="nSave">Criar</button></div>
+  </div>`);
+  $('#nCancel').onclick=closeModal;
+  $('#nSave').onclick=async()=>{
+    const email=$('#nEmail').value.trim(), pass=$('#nPass').value, name=$('#nName').value.trim(), role=$('#nRole').value;
+    if(!email||!pass){toast('Preencha e-mail e senha');return;}
+    $('#nSave').disabled=true;
+    // cliente temporário para não derrubar a sessão do admin
+    const tmp = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {auth:{storageKey:'nldiag-tmp',persistSession:false}});
+    const { data, error } = await tmp.auth.signUp({ email, password:pass, options:{ data:{ full_name:name, company_name:COMPANY, role } } });
+    if(error){ toast('Erro: '+error.message); $('#nSave').disabled=false; return; }
+    const uid = data.user?.id;
+    if(uid){ await sb.rpc('nl_admin_confirm_user',{p_user_id:uid}); await sb.rpc('nl_admin_update_user',{p_user_id:uid,p_full_name:name,p_role:role}); }
+    await tmp.auth.signOut();
+    closeModal(); loadUsers(); toast('Usuário criado.');
+  };
+});
+
+/* ============ CHAT ============ */
+async function loadSessions(){
+  if(!ME) return;
+  try{
+    const r=await fetch(`${CONFIG.N8N_BASE}/nldiag-sessions?userId=${encodeURIComponent(ME.id)}`); const arr=await safeJson(r);
+    const list=Array.isArray(arr)?arr:[];
+    $('#sessionList').innerHTML = list.map(s=>`<div class="s${s.session_id===curSession?' active':''}" data-s="${esc(s.session_id)}">${esc((stripCtx(s.titulo)||'Conversa').slice(0,40))}</div>`).join('') || '<div class="muted" style="padding:8px">Sem conversas</div>';
+    document.querySelectorAll('#sessionList .s').forEach(d=> d.onclick=()=> openSession(d.dataset.s));
+  }catch(e){ $('#sessionList').innerHTML=`<div class="muted" style="padding:8px">Indisponível</div>`; }
+}
+function newSessionId(){ return 'sess-'+Date.now()+'-'+Math.random().toString(36).slice(2,8); }
+$('#newChat').addEventListener('click', ()=>{ curSession=newSessionId(); $('#msgs').innerHTML='<div class="empty">Nova conversa. Pergunte sobre os editais.</div>'; loadSessions(); });
+async function openSession(id){
+  curSession=id; loadSessions();
+  try{
+    const r=await fetch(`${CONFIG.N8N_BASE}/nldiag-history?sessionId=${encodeURIComponent(id)}&userId=${encodeURIComponent(ME.id)}`); const arr=await safeJson(r);
+    const msgs=(Array.isArray(arr)?arr:[]).map(m=>m.message).filter(Boolean);
+    $('#msgs').innerHTML = msgs.map(m=>{
+      const type=m.type==='human'?'u':'a';
+      const c=stripCtx(m.content);
+      return `<div class="msg ${type}">${type==='a'?mdLite(c):esc(c)}</div>`;
+    }).join('') || '<div class="empty">Conversa vazia.</div>';
+    $('#msgs').scrollTop=$('#msgs').scrollHeight;
+  }catch(e){ /* noop */ }
+}
+async function sendChat(){
+  const txt=$('#chatInput').value.trim(); if(!txt) return;
+  if(!curSession) curSession=newSessionId();
+  if($('#msgs').querySelector('.empty')) $('#msgs').innerHTML='';
+  $('#msgs').appendChild(el('div','msg u',esc(txt))); $('#chatInput').value=''; $('#msgs').scrollTop=$('#msgs').scrollHeight;
+  const thinking=el('div','msg a','…'); $('#msgs').appendChild(thinking); $('#msgs').scrollTop=$('#msgs').scrollHeight;
+  try{
+    const r=await fetch(`${CONFIG.N8N_BASE}/nldiag-AgentRag`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sessionId:curSession,userId:ME.id,userName:ME.full_name,message:txt})});
+    const j=await safeJson(r); thinking.innerHTML=mdLite((j&&j.output)||'(sem resposta)');
+  }catch(e){ thinking.innerHTML='Erro: '+esc(e.message); }
+  $('#msgs').scrollTop=$('#msgs').scrollHeight; loadSessions();
+}
+$('#sendChat').addEventListener('click', sendChat);
+$('#chatInput').addEventListener('keydown', e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendChat(); }});
+
+/* ============ modal + toast ============ */
+function openModal(html){ const r=$('#modalRoot'); r.innerHTML=`<div class="modal-bg"><div class="modal">${html}</div></div>`; r.querySelector('.modal-bg').onclick=e=>{if(e.target.classList.contains('modal-bg'))closeModal();}; const c=r.querySelector('.close'); if(c)c.onclick=closeModal; }
+function closeModal(){ $('#modalRoot').innerHTML=''; }
+function toast(msg){ const t=el('div','',esc(msg)); t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid var(--line);padding:12px 18px;border-radius:10px;z-index:100;box-shadow:0 6px 20px rgba(0,0,0,.4)'; document.body.appendChild(t); setTimeout(()=>t.remove(),3500); }
+</script>
+</body>
+</html>

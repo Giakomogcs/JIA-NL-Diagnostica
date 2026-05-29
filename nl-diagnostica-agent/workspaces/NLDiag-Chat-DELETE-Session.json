@@ -1,0 +1,66 @@
+{
+  "name": "NLDiag-Chat-DELETE-Session",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "nldiag-session",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "abcfdce6-0003-4003-8003-495900000001",
+      "name": "When called - DELETE session",
+      "position": [-32, -112],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "nldiag-session"
+    },
+    {
+      "parameters": {
+        "jsCode": "const q = $input.first().json.query || $input.first().json.queryString || $input.first().json.body || {};\nconst sessionId = q.sessionId;\nconst userId    = q.userId;\nif (!sessionId) throw new Error('sessionId is required');\nif (!userId)    throw new Error('userId is required');\nreturn { sessionId, userId };"
+      },
+      "id": "1234fdce-0003-4003-8003-495900000002",
+      "name": "Extract Params",
+      "position": [176, -112],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM nl_chat_message\n WHERE session_id = '{{ $json.sessionId }}'\n   AND user_id    = '{{ $json.userId }}'::uuid;",
+        "options": {}
+      },
+      "id": "5678fdce-0003-4003-8003-495900000003",
+      "name": "Delete Session from DB",
+      "position": [400, -112],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"sessionId\": \"{{ $('Extract Params').item.json.sessionId }}\"}",
+        "options": {}
+      },
+      "id": "9abcfdce-0003-4003-8003-495900000004",
+      "name": "Return Success",
+      "position": [624, -112],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When called - DELETE session": { "main": [[{ "node": "Extract Params", "type": "main", "index": 0 }]] },
+    "Extract Params": { "main": [[{ "node": "Delete Session from DB", "type": "main", "index": 0 }]] },
+    "Delete Session from DB": { "main": [[{ "node": "Return Success", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "id": "NLDiagChatDeleteSession",
+  "tags": []
+}

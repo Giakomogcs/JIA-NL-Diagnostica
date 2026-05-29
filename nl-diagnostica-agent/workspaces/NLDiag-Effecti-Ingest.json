@@ -1,0 +1,224 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "6ad101f9-11d7-4d2b-9e43-a93bc7fc4cfa",
+      "name": "Cron Diário 07h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [368, 496]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-effecti-pull",
+        "options": {}
+      },
+      "id": "f9ddb5bd-9d7c-49d5-a8d8-586f006b5805",
+      "name": "Webhook: pull manual",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [368, 704],
+      "webhookId": "nldiag-effecti-pull"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Define janela de datas e página. Aceita body { begin, end, page } no pull\n// manual; no cron usa as últimas 24h.\nconst body = ($input.first().json && ($input.first().json.body ?? $input.first().json)) || {};\nconst now = new Date();\nconst end = body.end || now.toISOString();\nconst begin = body.begin || new Date(now.getTime() - 24 * 3600 * 1000).toISOString();\nconst page = Number(body.page ?? 0) || 0;\nreturn { begin, end, page };"
+      },
+      "id": "23080b99-01f8-4a59-a8ba-060ac30c22c3",
+      "name": "Prepare Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [592, 608]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_batch_create('Effecti ' || now()::text, jsonb_build_object('begin','{{ $json.begin }}','end','{{ $json.end }}','page',{{ $json.page }})) AS batch_id,\n       '{{ $json.begin }}'::text AS begin,\n       '{{ $json.end }}'::text   AS \"end\",\n       {{ $json.page }}          AS page;",
+        "options": {}
+      },
+      "id": "03ea38cd-94d2-4c60-a52c-ac37e4e0c20c",
+      "name": "Create Batch",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [800, 608],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://mdw.minha.effecti.com.br/api-integracao/v1/aviso/licitacao?page={{ $json.page }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"begin\": \"{{ $json.begin }}\",\n  \"end\": \"{{ $json.end }}\"\n}",
+        "options": {}
+      },
+      "id": "0dafe62a-79be-4525-be12-3cebd986629e",
+      "name": "Effecti: getAllNoticesByDate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1024, 608],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wtbfNPqZjOdhhP2C",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Quebra a lista de licitações em itens individuais e codifica em base64\n// (passagem segura de JSON para o SQL — sem risco de injeção).\nconst resp = $input.first().json || {};\nconst lics = resp.licitacoes || resp.body?.licitacoes || [];\nconst batchId = $('Create Batch').first().json.batch_id;\nif (!Array.isArray(lics) || lics.length === 0) {\n  return [];\n}\nreturn lics.map(l => ({\n  json: {\n    b64: Buffer.from(JSON.stringify(l), 'utf8').toString('base64'),\n    batch_id: batchId,\n    idLicitacao: l.idLicitacao || null\n  }\n}));"
+      },
+      "id": "a12431cf-0e1e-4dbb-9d40-4e82ffe7e9c9",
+      "name": "Split & Encode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1248, 608]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM nl_upsert_edital(\n  convert_from(decode('{{ $json.b64 }}','base64'),'UTF8')::jsonb,\n  NULLIF('{{ $json.batch_id }}','')::uuid\n);",
+        "options": {}
+      },
+      "id": "5f07e53d-59b1-4627-b865-b033d9780974",
+      "name": "Upsert Edital",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1472, 608],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_match_edital('{{ $json.edital_id }}'::uuid) AS result;",
+        "options": {}
+      },
+      "id": "3fa0e677-57f2-4a64-b496-3e0e119e727e",
+      "name": "Match Edital",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1680, 608],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron Diário 07h": {
+      "main": [
+        [
+          {
+            "node": "Prepare Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: pull manual": {
+      "main": [
+        [
+          {
+            "node": "Prepare Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Filter": {
+      "main": [
+        [
+          {
+            "node": "Create Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Batch": {
+      "main": [
+        [
+          {
+            "node": "Effecti: getAllNoticesByDate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Effecti: getAllNoticesByDate": {
+      "main": [
+        [
+          {
+            "node": "Split & Encode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split & Encode": {
+      "main": [
+        [
+          {
+            "node": "Upsert Edital",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Edital": {
+      "main": [
+        [
+          {
+            "node": "Match Edital",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  }
+}

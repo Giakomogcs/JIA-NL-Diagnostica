@@ -1,0 +1,229 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-effecti-sync",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ced174c6-8688-49a7-af05-fa019ebbd706",
+      "name": "Webhook: sync decision",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [480, 752],
+      "webhookId": "nldiag-effecti-sync"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recebe a decisão já persistida no Supabase e a empurra para a Effecti.\n// Body: { idLicitacao, acao ('aceitar'|'recusar'), motivo?, motivoEffecti? }\nconst b = $input.first().json.body ?? $input.first().json ?? {};\nconst idLicitacao = Number(b.idLicitacao);\nconst acao = (b.acao || '').toString().trim();\nif (!idLicitacao) throw new Error('idLicitacao é obrigatório');\nif (!['aceitar','recusar'].includes(acao)) throw new Error('acao inválida');\nconst MOTIVOS = ['FALTA_CAPACIDADE_TECNICA','LOCALIDADE_ENTREGA','VALOR_ESTIMADO_BAIXO','DOCUMENTACAO_INSUFICIENTE','PRAZO_ENTREGA_CURTO','OUTROS'];\nlet motivoEffecti = (b.motivoEffecti || 'OUTROS').toString().toUpperCase();\nif (!MOTIVOS.includes(motivoEffecti)) motivoEffecti = 'OUTROS';\nreturn { idLicitacao, acao, motivo: (b.motivo || '').toString(), motivoEffecti };"
+      },
+      "id": "d46c75bb-c474-4eaa-bb94-3af563ee0745",
+      "name": "Prepare Sync",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [704, 752]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.acao }}",
+              "rightValue": "aceitar",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0a28850b-8861-4a21-bfe5-79b54551171e",
+      "name": "Aceitar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [912, 752]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "https://mdw.minha.effecti.com.br/api-integracao/v1/aviso/favoritar-licitacao",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"idLicitacao\": [ {{ $json.idLicitacao }} ]\n}",
+        "options": {}
+      },
+      "id": "c366ce5a-8397-4eff-81b2-460b602827df",
+      "name": "Effecti: favoritar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1152, 624],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wtbfNPqZjOdhhP2C",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "https://mdw.minha.effecti.com.br/api-integracao/v1/aviso/descartar-licitacao-motivo",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"licitacoesDescarte\": [\n    {\n      \"idLicitacao\": {{ $json.idLicitacao }},\n      \"motivos\": [ { \"motivo\": \"{{ $json.motivoEffecti }}\", \"descricao\": \"{{ ($json.motivo || '').replace(/\\\"/g,'') }}\" } ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "89b4c842-a749-4881-9b41-428ea57c6fee",
+      "name": "Effecti: descartar c/ motivo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1152, 864],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wtbfNPqZjOdhhP2C",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_mark_synced({{ $('Prepare Sync').item.json.idLicitacao }}::bigint);",
+        "options": {}
+      },
+      "id": "4757d7ae-7a3b-4241-824c-43ac2d54d2ea",
+      "name": "Mark Synced",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1392, 752],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true, \"idLicitacao\": {{ $('Prepare Sync').item.json.idLicitacao }}, \"acao\": \"{{ $('Prepare Sync').item.json.acao }}\" }",
+        "options": {}
+      },
+      "id": "41193955-d457-424e-ace9-41e3ef545634",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1616, 752]
+    }
+  ],
+  "connections": {
+    "Webhook: sync decision": {
+      "main": [
+        [
+          {
+            "node": "Prepare Sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Sync": {
+      "main": [
+        [
+          {
+            "node": "Aceitar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aceitar?": {
+      "main": [
+        [
+          {
+            "node": "Effecti: favoritar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Effecti: descartar c/ motivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Effecti: favoritar": {
+      "main": [
+        [
+          {
+            "node": "Mark Synced",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Effecti: descartar c/ motivo": {
+      "main": [
+        [
+          {
+            "node": "Mark Synced",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Synced": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  }
+}

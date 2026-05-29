@@ -1,0 +1,34 @@
+# ===== Planilhas Excel (apenas em subpastas; permitir na RAIZ) =====
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
+*.csv
+!/*.xlsx
+!/*.xls
+!/*.xlsm
+!/*.xlsb
+!/*.csv
+
+# ===== PDFs / Catálogos (apenas em subpastas; permitir na RAIZ) =====
+*.pdf
+!/*.pdf
+
+# ===== Backups =====
+*.bak
+
+# ===== OS / Editor =====
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+*.swo
+*~
+
+# ===== Node (caso use dependências no futuro) =====
+node_modules/
+.env
+.env.*
+
+# ===== Skills internos (Copilot) =====
+.github/skills/

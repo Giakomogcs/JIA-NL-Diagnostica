@@ -1,0 +1,193 @@
+{
+  "name": "NLDiag-Bridge",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-stats", "responseMode": "responseNode", "options": {} },
+      "id": "c1000000-0000-4000-8000-000000000001",
+      "name": "WH stats",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-300, -360],
+      "webhookId": "nldiag-tool-stats"
+    },
+    {
+      "parameters": { "operation": "executeQuery", "query": "SELECT nl_stats() AS data;", "options": {} },
+      "id": "c1000000-0000-4000-8000-000000000002",
+      "name": "Q stats",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-60, -360],
+      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+    },
+    {
+      "parameters": { "respondWith": "allIncomingItems", "options": {} },
+      "id": "c1000000-0000-4000-8000-000000000003",
+      "name": "R stats",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [180, -360]
+    },
+
+    {
+      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-dashboard", "responseMode": "responseNode", "options": {} },
+      "id": "c1000000-0000-4000-8000-000000000004",
+      "name": "WH dashboard",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-300, -200],
+      "webhookId": "nldiag-tool-dashboard"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM nl_dashboard_editais(\n  NULLIF('{{ $json.body.status }}','')::text,\n  NULLIF('{{ $json.body.uf }}','')::text,\n  NULLIF('{{ $json.body.search }}','')::text,\n  NULL,\n  COALESCE({{ $json.body.limit || 20 }}, 20),\n  COALESCE({{ $json.body.offset || 0 }}, 0)\n);",
+        "options": {}
+      },
+      "id": "c1000000-0000-4000-8000-000000000005",
+      "name": "Q dashboard",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-60, -200],
+      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+    },
+    {
+      "parameters": { "respondWith": "allIncomingItems", "options": {} },
+      "id": "c1000000-0000-4000-8000-000000000006",
+      "name": "R dashboard",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [180, -200]
+    },
+
+    {
+      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-edital", "responseMode": "responseNode", "options": {} },
+      "id": "c1000000-0000-4000-8000-000000000007",
+      "name": "WH edital",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-300, -40],
+      "webhookId": "nldiag-tool-edital"
+    },
+    {
+      "parameters": { "operation": "executeQuery", "query": "SELECT nl_get_edital('{{ $json.body.edital_id }}'::uuid) AS data;", "options": {} },
+      "id": "c1000000-0000-4000-8000-000000000008",
+      "name": "Q edital",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-60, -40],
+      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+    },
+    {
+      "parameters": { "respondWith": "allIncomingItems", "options": {} },
+      "id": "c1000000-0000-4000-8000-000000000009",
+      "name": "R edital",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [180, -40]
+    },
+
+    {
+      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-learning", "responseMode": "responseNode", "options": {} },
+      "id": "c1000000-0000-4000-8000-00000000000a",
+      "name": "WH learning",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-300, 120],
+      "webhookId": "nldiag-tool-learning"
+    },
+    {
+      "parameters": { "operation": "executeQuery", "query": "SELECT nl_learning_signals(20) AS data;", "options": {} },
+      "id": "c1000000-0000-4000-8000-00000000000b",
+      "name": "Q learning",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-60, 120],
+      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+    },
+    {
+      "parameters": { "respondWith": "allIncomingItems", "options": {} },
+      "id": "c1000000-0000-4000-8000-00000000000c",
+      "name": "R learning",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [180, 120]
+    },
+
+    {
+      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-catalogo", "responseMode": "responseNode", "options": {} },
+      "id": "c1000000-0000-4000-8000-00000000000d",
+      "name": "WH catalogo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-300, 280],
+      "webhookId": "nldiag-tool-catalogo"
+    },
+    {
+      "parameters": { "operation": "executeQuery", "query": "SELECT id, tipo, linha, descricao, finalidade, palavras_chave, sinonimos, marca, ativo FROM nl_catalogo WHERE ativo ORDER BY linha, descricao;", "options": {} },
+      "id": "c1000000-0000-4000-8000-00000000000e",
+      "name": "Q catalogo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-60, 280],
+      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+    },
+    {
+      "parameters": { "respondWith": "allIncomingItems", "options": {} },
+      "id": "c1000000-0000-4000-8000-00000000000f",
+      "name": "R catalogo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [180, 280]
+    },
+
+    {
+      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-decision", "responseMode": "responseNode", "options": {} },
+      "id": "c1000000-0000-4000-8000-000000000010",
+      "name": "WH decision",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-300, 440],
+      "webhookId": "nldiag-tool-decision"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_record_decision(\n  '{{ $json.body.edital_id }}'::uuid,\n  '{{ $json.body.acao }}',\n  NULLIF('{{ $json.body.motivo }}',''),\n  NULLIF('{{ $json.body.motivo_effecti }}',''),\n  'ia'\n) AS data;",
+        "options": {}
+      },
+      "id": "c1000000-0000-4000-8000-000000000011",
+      "name": "Q decision",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-60, 440],
+      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+    },
+    {
+      "parameters": { "respondWith": "allIncomingItems", "options": {} },
+      "id": "c1000000-0000-4000-8000-000000000012",
+      "name": "R decision",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [180, 440]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WH stats":     { "main": [[{ "node": "Q stats", "type": "main", "index": 0 }]] },
+    "Q stats":      { "main": [[{ "node": "R stats", "type": "main", "index": 0 }]] },
+    "WH dashboard": { "main": [[{ "node": "Q dashboard", "type": "main", "index": 0 }]] },
+    "Q dashboard":  { "main": [[{ "node": "R dashboard", "type": "main", "index": 0 }]] },
+    "WH edital":    { "main": [[{ "node": "Q edital", "type": "main", "index": 0 }]] },
+    "Q edital":     { "main": [[{ "node": "R edital", "type": "main", "index": 0 }]] },
+    "WH learning":  { "main": [[{ "node": "Q learning", "type": "main", "index": 0 }]] },
+    "Q learning":   { "main": [[{ "node": "R learning", "type": "main", "index": 0 }]] },
+    "WH catalogo":  { "main": [[{ "node": "Q catalogo", "type": "main", "index": 0 }]] },
+    "Q catalogo":   { "main": [[{ "node": "R catalogo", "type": "main", "index": 0 }]] },
+    "WH decision":  { "main": [[{ "node": "Q decision", "type": "main", "index": 0 }]] },
+    "Q decision":   { "main": [[{ "node": "R decision", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "id": "NLDiagBridge",
+  "tags": []
+}
