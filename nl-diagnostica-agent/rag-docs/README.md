@@ -9,11 +9,14 @@ Documentos para alimentar a base RAG do agente. São conhecimento de domínio (e
 | file_id | Arquivo | Conteúdo |
 |---|---|---|
 | `EMPRESA-NLDIAG-01` | `01-empresa-nl-diagnostica.md` | Perfil da empresa, linhas e regra de ouro de escopo |
-| `LINHA-HEMOSTASIA-01` | `02-linha-hemostasia.md` | Produtos/serviços, finalidade de uso e termos técnicos |
+| `LINHA-HEMOSTASIA-01` | `02-linha-hemostasia.md` | Hemostasia laboratorial + Point of Care (Cascade Abrazo) |
 | `GLOSSARIO-LICITACOES-01` | `03-glossario-licitacoes.md` | Modalidades, estrutura de edital, por produto/lote/total |
 | `REGRAS-PARTICIPACAO-01` | `04-regras-participacao.md` | Critérios de aceitar/recusar e uso do aprendizado |
 | `EFFECTI-INTEGRACAO-01` | `05-integracao-effecti.md` | Campos da Effecti, status e sincronização |
 | `EXEMPLOS-ANALISE-01` | `06-exemplos-analise.md` | Casos resolvidos (few-shot) para calibrar o raciocínio |
+| `LINHA-ELETROFORESE-01` | `07-linha-eletroforese.md` | Eletroforese capilar V8/SPIFE (proteínas, hemoglobinas, imunofixação) |
+| `LINHA-PARASITOLOGIA-01` | `08-linha-parasitologia.md` | Coproplus / Coproplus Ultra (exame parasitológico de fezes) |
+| `LINHA-TESTES-RAPIDOS-01` | `09-linha-testes-rapidos.md` | Testes rápidos imunocromatográficos (ex.: COVID-19) |
 
 ## Como ingerir
 1. Suba os workflows `NLDiag-RAG.json` no n8n e configure as credenciais (`NLDiag-DB`, `Azure OpenAI`, `Supabase account`).

@@ -15,13 +15,13 @@ Os editais chegam pela **API da Effecti** (base `https://mdw.minha.effecti.com.b
 | `uf` | `uf` | Estado (logística) |
 | `portal` | `portal_nome` | Portal de origem (ComprasNet, BLL, etc.) |
 | `modalidade` | `modalidade` | Pregão, dispensa, etc. |
-| `objeto` / `objetoSemHtml` | `objeto` | Descrição do objeto |
+| `objeto` / `objetoSemTags` | `objeto` | Descrição do objeto (preferir `objetoSemTags`, já sem HTML) |
 | `dataPublicacao` | `data_publicacao` | Quando foi publicado |
 | `dataFinalProposta` | `data_abertura` | Data/limite da licitação |
 | `valorTotalEstimado` | `valor_total_estimado` | Valor de referência |
 | `url` | `url_edital` / `url_portal` | Link do edital/portal |
 | `palavraEncontrada` | `palavras_encontradas` | Palavras que dispararam o aviso |
-| `itensEdital[]` | `nl_edital_item` | Itens (lote, item, produto, qtd, unidade, valores) |
+| `itensEdital[]` | `nl_edital_item` | Itens (lote, item, `produtoLicitadoSemTags`, qtd, unidade, valores) |
 
 ## Status no painel
 - `novo` — recém-ingerido, ainda não decidido.

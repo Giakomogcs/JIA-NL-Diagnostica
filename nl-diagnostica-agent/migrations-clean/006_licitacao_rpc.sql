@@ -144,7 +144,7 @@ BEGIN
       v_idlic, v_hash, v_portal, p_payload->>'portal',
       p_payload->>'processo', p_payload->>'orgao', p_payload->>'uf',
       p_payload->>'modalidade', p_payload->>'cnpj', NULLIF(p_payload->>'uasg','')::TEXT,
-      COALESCE(p_payload->>'objetoSemHtml', p_payload->>'objeto'),
+      COALESCE(p_payload->>'objetoSemTags', p_payload->>'objetoSemHtml', p_payload->>'objeto'),
       nl_parse_ts(p_payload->>'dataPublicacao'),
       nl_parse_ts(p_payload->>'dataFinalProposta'),
       nl_parse_ts(p_payload->>'dataInicialProposta'),
@@ -164,7 +164,7 @@ BEGIN
       modalidade = COALESCE(p_payload->>'modalidade', modalidade),
       cnpj_orgao = COALESCE(p_payload->>'cnpj', cnpj_orgao),
       uasg = COALESCE(NULLIF(p_payload->>'uasg','')::TEXT, uasg),
-      objeto = COALESCE(p_payload->>'objetoSemHtml', p_payload->>'objeto', objeto),
+      objeto = COALESCE(p_payload->>'objetoSemTags', p_payload->>'objetoSemHtml', p_payload->>'objeto', objeto),
       data_publicacao = COALESCE(nl_parse_ts(p_payload->>'dataPublicacao'), data_publicacao),
       data_abertura = COALESCE(nl_parse_ts(p_payload->>'dataFinalProposta'), data_abertura),
       data_inicial_proposta = COALESCE(nl_parse_ts(p_payload->>'dataInicialProposta'), data_inicial_proposta),
@@ -180,7 +180,7 @@ BEGIN
   END IF;
 
   -- substitui itens (idempotente)
-  DELETE FROM nl_edital_item WHERE edital_id = v_id;
+  DELETE FROM nl_edital_item WHERE nl_edital_item.edital_id = v_id;
   IF jsonb_typeof(p_payload->'itensEdital') = 'array' THEN
     FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'itensEdital')
     LOOP
@@ -191,7 +191,7 @@ BEGIN
         v_id,
         NULLIF(v_item->>'lote',''),
         NULLIF(v_item->>'item','')::INT,
-        COALESCE(v_item->>'produtoLicitadoSemHtml', v_item->>'produtoLicitado'),
+        COALESCE(v_item->>'produtoLicitadoSemTags', v_item->>'produtoLicitadoSemHtml', v_item->>'produtoLicitado'),
         NULLIF(v_item->>'quantidade','')::NUMERIC,
         v_item->>'unidade',
         NULLIF(v_item->>'valorUnitarioEstimado','')::NUMERIC,
@@ -207,6 +207,30 @@ END;
 $$;
 
 -- =========================================================
+-- HELPER — match de palavra-chave com FRONTEIRA DE PALAVRA
+-- Evita falsos positivos de termos curtos (ex.: 'tp','inr','tca','spe','epf',
+-- 'id') que casariam por substring dentro de outras palavras. Usa regex com
+-- bordas de não-alfanumérico e escapa metacaracteres do termo.
+-- =========================================================
+CREATE OR REPLACE FUNCTION nl_kw_match(p_text TEXT, p_kw TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql IMMUTABLE AS $$
+DECLARE
+  v_kw  TEXT;
+  v_re  TEXT;
+BEGIN
+  IF p_text IS NULL OR p_kw IS NULL THEN RETURN FALSE; END IF;
+  v_kw := lower(btrim(p_kw));
+  IF v_kw = '' THEN RETURN FALSE; END IF;
+  -- escapa metacaracteres de regex no termo
+  v_kw := regexp_replace(v_kw, '([.^$*+?()\[\]{}|\\-])', '\\\1', 'g');
+  -- borda de palavra usando classe de não-alfanumérico (compatível com acentos)
+  v_re := '(^|[^[:alnum:]])' || v_kw || '([^[:alnum:]]|$)';
+  RETURN lower(p_text) ~ v_re;
+END;
+$$;
+
+-- =========================================================
 -- MATCH — cruza itens com o catálogo e decide modo de participação
 -- =========================================================
 CREATE OR REPLACE FUNCTION nl_match_edital(p_edital_id UUID)
@@ -217,6 +241,7 @@ DECLARE
   r_cat        RECORD;
   v_prod       TEXT;
   v_hits       INT;
+  v_strong     INT;
   v_score      NUMERIC;
   v_best_score NUMERIC;
   v_best_id    UUID;
@@ -238,13 +263,19 @@ BEGIN
 
     FOR r_cat IN SELECT * FROM nl_catalogo WHERE ativo LOOP
       v_hits := 0;
+      v_strong := 0;
       FOREACH kw IN ARRAY (COALESCE(r_cat.palavras_chave,'{}') || COALESCE(r_cat.sinonimos,'{}')) LOOP
-        IF kw IS NOT NULL AND TRIM(kw) <> '' AND position(lower(kw) IN v_prod) > 0 THEN
+        IF nl_kw_match(v_prod, kw) THEN
           v_hits := v_hits + 1;
+          -- termo multi-palavra ou longo = sinal mais específico/forte
+          IF position(' ' IN btrim(kw)) > 0 OR length(btrim(kw)) >= 8 THEN
+            v_strong := v_strong + 1;
+          END IF;
         END IF;
       END LOOP;
       IF v_hits > 0 THEN
-        v_score := LEAST(1.0, 0.4 + 0.2 * v_hits);
+        -- base por nº de termos + bônus por termos fortes (mais específicos)
+        v_score := LEAST(1.0, 0.4 + 0.15 * v_hits + 0.15 * v_strong);
         IF v_score > v_best_score THEN
           v_best_score := v_score; v_best_id := r_cat.id;
         END IF;
@@ -602,6 +633,35 @@ BEGIN
 END;
 $$;
 
+-- =========================================================
+-- REMATCH EM LOTE — reaplica o match (catálogo atual) nos editais.
+-- Use após alterar o catálogo/palavras-chave ou a lógica de match.
+-- Por padrão NÃO mexe em editais já decididos (aceito/recusado).
+-- Admin-only (ou backend/n8n).
+-- =========================================================
+CREATE OR REPLACE FUNCTION nl_rematch_all(p_only_pending BOOLEAN DEFAULT TRUE)
+RETURNS JSONB
+SECURITY DEFINER SET search_path = public LANGUAGE plpgsql AS $$
+DECLARE
+  r_ed   RECORD;
+  v_qtd  INT := 0;
+BEGIN
+  IF NOT (nl_is_admin() OR nl_is_backend()) THEN
+    RAISE EXCEPTION 'Acesso negado: apenas administradores.' USING ERRCODE = '42501';
+  END IF;
+
+  FOR r_ed IN
+    SELECT id FROM nl_edital
+     WHERE (NOT p_only_pending) OR status NOT IN ('aceito','recusado')
+  LOOP
+    PERFORM nl_match_edital(r_ed.id);
+    v_qtd := v_qtd + 1;
+  END LOOP;
+
+  RETURN jsonb_build_object('reprocessados', v_qtd, 'only_pending', p_only_pending);
+END;
+$$;
+
 -- ---------- grants ----------
 GRANT EXECUTE ON FUNCTION nl_is_backend()                                                TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION nl_list_catalogo(BOOLEAN)                                      TO authenticated;
@@ -618,10 +678,12 @@ GRANT EXECUTE ON FUNCTION nl_learning_signals(INT)                              
 GRANT EXECUTE ON FUNCTION nl_batch_create(TEXT,JSONB)                                    TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION nl_batch_next(INT)                                             TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION nl_stats()                                                     TO authenticated;
+GRANT EXECUTE ON FUNCTION nl_rematch_all(BOOLEAN)                                        TO authenticated, service_role;
 
 NOTIFY pgrst, 'reload schema';
 
 -- =======  DOWN  ========
+-- DROP FUNCTION IF EXISTS nl_rematch_all(BOOLEAN);
 -- DROP FUNCTION IF EXISTS nl_stats();
 -- DROP FUNCTION IF EXISTS nl_batch_next(INT);
 -- DROP FUNCTION IF EXISTS nl_batch_create(TEXT,JSONB);
@@ -632,6 +694,7 @@ NOTIFY pgrst, 'reload schema';
 -- DROP FUNCTION IF EXISTS nl_get_edital(UUID);
 -- DROP FUNCTION IF EXISTS nl_dashboard_editais(TEXT,TEXT,TEXT,UUID,INT,INT);
 -- DROP FUNCTION IF EXISTS nl_match_edital(UUID);
+-- DROP FUNCTION IF EXISTS nl_kw_match(TEXT,TEXT);
 -- DROP FUNCTION IF EXISTS nl_upsert_edital(JSONB, UUID);
 -- DROP FUNCTION IF EXISTS nl_admin_delete_catalogo(UUID);
 -- DROP FUNCTION IF EXISTS nl_admin_upsert_catalogo(UUID,TEXT,TEXT,TEXT,TEXT,TEXT[],TEXT[],TEXT,TEXT,TEXT,BOOLEAN);

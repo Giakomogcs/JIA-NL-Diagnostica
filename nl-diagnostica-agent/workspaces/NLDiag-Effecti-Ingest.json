@@ -62,14 +62,16 @@
       "parameters": {
         "method": "POST",
         "url": "=https://mdw.minha.effecti.com.br/api-integracao/v1/aviso/licitacao?page={{ $json.page }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvIiwiYXVkIjpbImh0dHA6Ly9sb2NhbC5hcGkuZWZmZWN0aS5jb20uYnIiLCJodHRwOi8vbG9jYWxob3N0OjMwMDAiXSwic3ViIjoxNzgwMDc3MDA0NjA1LCJjb21wYW55Ijo5OTcwLCJwcm9maWxlcyI6WzFdLCJjYWRhc3RyYXJNaWdyYXRlZCI6ZmFsc2V9.G8o3C5sllEJ7ZTfyPAWjbt3ZtKf3mkQPPvaHojiybN4"
             }
           ]
         },
@@ -82,13 +84,7 @@
       "name": "Effecti: getAllNoticesByDate",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1024, 608],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "wtbfNPqZjOdhhP2C",
-          "name": "Header Auth account"
-        }
-      }
+      "position": [1024, 608]
     },
     {
       "parameters": {

@@ -12,6 +12,7 @@ Cada arquivo tem seções `UP` (aplicar) e comentários `DOWN` (reverter).
 | 5 | `005_licitacao_schema.sql` | `nl_portal`, `nl_catalogo`, `nl_batch`, `nl_edital`, `nl_edital_item`, `nl_decision_log` + RLS + `nl_parse_ts()` |
 | 6 | `006_licitacao_rpc.sql` | `nl_is_backend()`, CRUD catálogo, `nl_upsert_edital()`, `nl_match_edital()`, `nl_dashboard_editais()`, `nl_get_edital()`, `nl_record_decision()`, `nl_set_item_participation()`, `nl_mark_synced()`, `nl_learning_signals()`, `nl_batch_*()`, `nl_stats()` |
 | 7 | `007_seeds.sql` | Portais (EFFECTI/LICITAJA/COMPRASNET), catálogo Hemostasia (exemplos) e **admin inicial** |
+| 8 | `008_session_rag.sql` | `nl_match_documents` passa a isolar anexos de conversa: busca global ignora chunks com `session_id`; com filtro `{session_id}` retorna só os daquela conversa. `nl_rag_purge_session()` |
 
 ## Pré‑requisitos
 - Extensão `vector` habilitada (Database → Extensions).

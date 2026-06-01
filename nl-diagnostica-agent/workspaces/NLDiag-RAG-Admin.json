@@ -1,16 +1,16 @@
 {
-  "name": "NLDiag-RAG-Admin",
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "GET",
         "path": "nldiag-rag-docs",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "*" }
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
-      "id": "e1000001-0000-4000-8000-000000000001",
+      "id": "0768c87e-5d88-447a-9bfc-9eb928034c6d",
       "name": "Webhook - List Docs",
-      "position": [200, -200],
+      "position": [2384, 784],
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "webhookId": "nldiag-rag-docs-list"
@@ -18,43 +18,55 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  m.file_id AS id, m.file_id, m.title, m.code, m.url, m.source, m.mime_type,\n  COALESCE((SELECT COUNT(*) FROM nl_documents d WHERE d.metadata->>'file_id' = m.file_id), 0) AS chunk_count,\n  m.created_at, m.updated_at AS last_indexed_at\nFROM nl_document_metadata m\nORDER BY COALESCE(m.code, m.title, m.file_id);",
+        "query": "SELECT\n  m.file_id AS id, m.file_id, m.title, m.code, m.url, m.source, m.mime_type,\n  COALESCE((SELECT COUNT(*) FROM nl_documents d WHERE d.metadata->>'file_id' = m.file_id), 0) AS chunk_count,\n  m.created_at, m.updated_at AS last_indexed_at\nFROM nl_document_metadata m\nWHERE m.source IS DISTINCT FROM 'chat'\nORDER BY COALESCE(m.code, m.title, m.file_id);",
         "options": {}
       },
-      "id": "e1000001-0000-4000-8000-000000000002",
+      "id": "49d787bc-4efc-440f-83ef-81f8da3964c2",
       "name": "List Docs from DB",
-      "position": [420, -200],
+      "position": [2608, 784],
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
-      "parameters": { "jsCode": "const docs = $input.all().map(i => i.json);\nreturn [{ json: { docs } }];" },
-      "id": "e1000001-0000-4000-8000-000000000003",
+      "parameters": {
+        "jsCode": "const docs = $input.all().map(i => i.json);\nreturn [{ json: { docs } }];"
+      },
+      "id": "eb9805e9-1d91-4593-aa46-4b6cebe7f99d",
       "name": "Wrap Docs",
-      "position": [620, -200],
+      "position": [2800, 784],
       "type": "n8n-nodes-base.code",
       "typeVersion": 2
     },
     {
-      "parameters": { "respondWith": "json", "responseBody": "={{ $json }}", "options": {} },
-      "id": "e1000001-0000-4000-8000-000000000004",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "677b16b7-50a0-4819-9d5c-249e80750105",
       "name": "Respond Docs",
-      "position": [820, -200],
+      "position": [3008, 784],
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1
     },
-
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "nldiag-rag-doc-delete",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "*" }
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
-      "id": "e1000002-0000-4000-8000-000000000001",
+      "id": "a62409fb-5d50-4d71-82f7-ad2a4bc91ce6",
       "name": "Webhook - Delete Doc",
-      "position": [200, 0],
+      "position": [2384, 992],
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "webhookId": "nldiag-rag-doc-delete"
@@ -63,9 +75,9 @@
       "parameters": {
         "jsCode": "const b = $input.first().json || {};\nconst body = b.body || b;\nconst q = b.query || b.queryString || {};\nconst fileId = body.file_id || body.id || q.file_id || q.id;\nif (!fileId) throw new Error('file_id is required');\nreturn { fileId };"
       },
-      "id": "e1000002-0000-4000-8000-000000000002",
+      "id": "ea571b63-412e-4ea3-9129-b49f90daa709",
       "name": "Extract file_id (delete)",
-      "position": [420, 0],
+      "position": [2608, 992],
       "type": "n8n-nodes-base.code",
       "typeVersion": 2
     },
@@ -75,32 +87,42 @@
         "query": "WITH purged AS (\n  DELETE FROM nl_documents WHERE metadata->>'file_id' = '{{ $json.fileId }}' RETURNING 1\n), purged_rows AS (\n  DELETE FROM nl_document_rows WHERE dataset_id = '{{ $json.fileId }}' RETURNING 1\n)\nDELETE FROM nl_document_metadata WHERE file_id = '{{ $json.fileId }}' RETURNING file_id AS deleted_file_id;",
         "options": {}
       },
-      "id": "e1000002-0000-4000-8000-000000000003",
+      "id": "2b9ca573-267a-43b9-abad-1a277a6118d4",
       "name": "Delete Doc from DB",
-      "position": [640, 0],
+      "position": [2832, 992],
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
-      "parameters": { "respondWith": "json", "responseBody": "={{ { status: 'ok', deleted: $json.deleted_file_id } }}", "options": {} },
-      "id": "e1000002-0000-4000-8000-000000000004",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', deleted: $json.deleted_file_id } }}",
+        "options": {}
+      },
+      "id": "b036d518-0a1f-406b-ad06-0e9fe7390c0e",
       "name": "Respond Delete",
-      "position": [860, 0],
+      "position": [3040, 992],
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1
     },
-
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "nldiag-rag-purge-all",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "*" }
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
-      "id": "e1000003-0000-4000-8000-000000000001",
+      "id": "92808716-22b1-4a7d-bf24-d66089f17c40",
       "name": "Webhook - Purge All",
-      "position": [200, 200],
+      "position": [2384, 1184],
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "webhookId": "nldiag-rag-purge-all"
@@ -111,48 +133,136 @@
         "query": "TRUNCATE TABLE nl_documents RESTART IDENTITY;\nTRUNCATE TABLE nl_document_rows RESTART IDENTITY;\nTRUNCATE TABLE nl_document_metadata RESTART IDENTITY CASCADE;\nSELECT 'ok' AS status;",
         "options": {}
       },
-      "id": "e1000003-0000-4000-8000-000000000002",
+      "id": "3b49f154-93ca-43df-af6e-d4c1c21d5c9b",
       "name": "Purge All RAG Tables",
-      "position": [420, 200],
+      "position": [2608, 1184],
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
-      "parameters": { "respondWith": "json", "responseBody": "={{ { status: 'success', message: 'Base RAG limpa.' } }}", "options": {} },
-      "id": "e1000003-0000-4000-8000-000000000003",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'success', message: 'Base RAG limpa.' } }}",
+        "options": {}
+      },
+      "id": "dd9be759-8ed3-4a45-9c7a-5261dbfc372b",
       "name": "Respond Purge",
-      "position": [640, 200],
+      "position": [2832, 1184],
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1
     },
-
     {
       "parameters": {
         "content": "## NL Diagnostica — RAG Admin API\n\nTrês webhooks usados pelo painel **Documentos** (admin):\n\n| Método | Path | O que faz |\n|---|---|---|\n| GET | `/nldiag-rag-docs` | Lista documentos do RAG + contagem de chunks |\n| POST | `/nldiag-rag-doc-delete` | Remove um documento por `file_id` |\n| POST | `/nldiag-rag-purge-all` | Limpa toda a base RAG |\n\nA ingestão (upload + embeddings) está em **NLDiag-RAG.json**. O RAG é GLOBAL — sem ACL por categoria/equipe; todo membro autenticado consulta tudo via agente.",
         "height": 280,
         "width": 460
       },
-      "id": "e1000099-0000-4000-8000-000000000001",
+      "id": "f85af88b-4600-4994-aea0-0b6e5ad68f33",
       "name": "Sticky Note",
-      "position": [-260, -200],
+      "position": [1920, 784],
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1
     }
   ],
-  "pinData": {},
   "connections": {
-    "Webhook - List Docs": { "main": [[{ "node": "List Docs from DB", "type": "main", "index": 0 }]] },
-    "List Docs from DB": { "main": [[{ "node": "Wrap Docs", "type": "main", "index": 0 }]] },
-    "Wrap Docs": { "main": [[{ "node": "Respond Docs", "type": "main", "index": 0 }]] },
-    "Webhook - Delete Doc": { "main": [[{ "node": "Extract file_id (delete)", "type": "main", "index": 0 }]] },
-    "Extract file_id (delete)": { "main": [[{ "node": "Delete Doc from DB", "type": "main", "index": 0 }]] },
-    "Delete Doc from DB": { "main": [[{ "node": "Respond Delete", "type": "main", "index": 0 }]] },
-    "Webhook - Purge All": { "main": [[{ "node": "Purge All RAG Tables", "type": "main", "index": 0 }]] },
-    "Purge All RAG Tables": { "main": [[{ "node": "Respond Purge", "type": "main", "index": 0 }]] }
+    "Webhook - List Docs": {
+      "main": [
+        [
+          {
+            "node": "List Docs from DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Docs from DB": {
+      "main": [
+        [
+          {
+            "node": "Wrap Docs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wrap Docs": {
+      "main": [
+        [
+          {
+            "node": "Respond Docs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Delete Doc": {
+      "main": [
+        [
+          {
+            "node": "Extract file_id (delete)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract file_id (delete)": {
+      "main": [
+        [
+          {
+            "node": "Delete Doc from DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Doc from DB": {
+      "main": [
+        [
+          {
+            "node": "Respond Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Purge All": {
+      "main": [
+        [
+          {
+            "node": "Purge All RAG Tables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Purge All RAG Tables": {
+      "main": [
+        [
+          {
+            "node": "Respond Purge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "active": false,
-  "settings": { "executionOrder": "v1", "binaryMode": "separate", "availableInMCP": false },
-  "id": "NLDiagRAGAdmin",
-  "tags": []
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  }
 }

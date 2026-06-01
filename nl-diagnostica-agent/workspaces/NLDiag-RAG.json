@@ -1,29 +1,30 @@
 {
-  "name": "NLDiag-RAG",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "nldiag-rag-upsert",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "*" }
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
-      "id": "f1000000-0000-4000-8000-000000000001",
+      "id": "d1f7ac07-f86e-49e7-bf70-fced46051466",
       "name": "Webhook - Upsert",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-460, 0],
+      "position": [8304, 2736],
       "webhookId": "nldiag-rag-upsert"
     },
     {
       "parameters": {
         "jsCode": "// Ingestão de 1 documento. Body JSON:\n// { file_id, title?, code?, url?, mime_type?, content_text }\nconst b = $input.first().json || {};\nconst body = b.body || b;\nconst file_id = body.file_id || body.id;\nif (!file_id) throw new Error('file_id is required');\nconst content_text = (body.content_text || body.content || '').toString();\nif (!content_text.trim()) throw new Error('content_text is required (texto extraído do documento)');\nreturn {\n  file_id,\n  title: (body.title || file_id).toString(),\n  code: body.code || null,\n  url: body.url || null,\n  mime_type: body.mime_type || 'text/plain',\n  content_text\n};"
       },
-      "id": "f1000000-0000-4000-8000-000000000002",
+      "id": "eca63bc9-b5d5-4012-9d2b-ae245e3c9a93",
       "name": "Normalize Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-240, 0]
+      "position": [8528, 2736]
     },
     {
       "parameters": {
@@ -31,12 +32,17 @@
         "query": "SELECT * FROM nl_rag_purge_file('{{ $json.file_id }}');",
         "options": {}
       },
-      "id": "f1000000-0000-4000-8000-000000000003",
+      "id": "c4c29ade-0e79-48a6-bceb-b5b411bcee67",
       "name": "Purge Old Chunks",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [-20, 0],
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "position": [8752, 2736],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
       "parameters": {
@@ -44,61 +50,58 @@
         "query": "SELECT nl_rag_upsert_metadata(\n  '{{ $('Normalize Payload').item.json.file_id }}',\n  '{{ ($('Normalize Payload').item.json.title || '').replace(/'/g, \"''\") }}',\n  {{ $('Normalize Payload').item.json.code ? \"'\" + String($('Normalize Payload').item.json.code).replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  {{ $('Normalize Payload').item.json.url ? \"'\" + String($('Normalize Payload').item.json.url).replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  'upload',\n  '{{ ($('Normalize Payload').item.json.mime_type || 'text/plain').replace(/'/g, \"''\") }}'\n);",
         "options": {}
       },
-      "id": "f1000000-0000-4000-8000-000000000004",
+      "id": "a6842494-d7b2-45fa-a775-572fe73963be",
       "name": "Upsert Metadata",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [200, 0],
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "position": [8976, 2736],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
       "parameters": {
         "mode": "insert",
-        "tableName": { "__rl": true, "value": "nl_documents", "mode": "list" },
-        "options": { "queryName": "nl_match_documents" }
+        "tableName": {
+          "__rl": true,
+          "value": "nl_documents",
+          "mode": "list"
+        },
+        "options": {
+          "queryName": "nl_match_documents"
+        }
       },
-      "id": "f1000000-0000-4000-8000-000000000005",
+      "id": "d51722dc-6823-4829-b619-5eafe591e1b8",
       "name": "Insert Documents",
       "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
       "typeVersion": 1.1,
-      "position": [440, 0],
-      "credentials": { "supabaseApi": { "id": "REPLACE_ME_SUPABASE_CRED", "name": "Supabase account" } }
-    },
-    {
-      "parameters": { "model": "text-embedding-3-small", "options": {} },
-      "id": "f1000000-0000-4000-8000-000000000006",
-      "name": "Azure OpenAI Embeddings",
-      "type": "@n8n/n8n-nodes-langchain.embeddingsAzureOpenAi",
-      "typeVersion": 1,
-      "position": [360, 220],
-      "credentials": { "azureOpenAiApi": { "id": "REPLACE_ME_AZURE_OPENAI_CRED", "name": "Azure OpenAI" } }
+      "position": [9216, 2736],
+      "credentials": {
+        "supabaseApi": {
+          "id": "i5Q8tj8Pyc9XjSGd",
+          "name": "Supabase account"
+        }
+      }
     },
     {
       "parameters": {
-        "jsonMode": "expressionData",
-        "jsonData": "={{ $('Normalize Payload').item.json.content_text }}",
-        "options": {
-          "metadata": {
-            "metadataValues": [
-              { "name": "file_id", "value": "={{ $('Normalize Payload').item.json.file_id }}" },
-              { "name": "code", "value": "={{ $('Normalize Payload').item.json.code }}" }
-            ]
-          }
-        }
+        "model": "text-embedding-3-small",
+        "options": {}
       },
-      "id": "f1000000-0000-4000-8000-000000000007",
-      "name": "Default Data Loader",
-      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
-      "typeVersion": 1.1,
-      "position": [560, 220]
-    },
-    {
-      "parameters": { "chunkSize": 1000, "chunkOverlap": 100, "options": {} },
-      "id": "f1000000-0000-4000-8000-000000000008",
-      "name": "Recursive Text Splitter",
-      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "id": "2a53dfa8-67c3-4dd3-968d-67860ddd30c5",
+      "name": "Azure OpenAI Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsAzureOpenAi",
       "typeVersion": 1,
-      "position": [560, 420]
+      "position": [9136, 2960],
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "xby4FSbCaCnssJxl",
+          "name": "Azure Open AI account 3"
+        }
+      }
     },
     {
       "parameters": {
@@ -106,94 +109,112 @@
         "responseBody": "={{ { status: 'ok', file_id: $('Normalize Payload').item.json.file_id } }}",
         "options": {}
       },
-      "id": "f1000000-0000-4000-8000-000000000009",
+      "id": "012f1f61-e3c4-46a7-8060-c4f10fb4cb7d",
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [700, 0]
+      "position": [9504, 2736]
     },
-
     {
       "parameters": {},
-      "id": "f2000000-0000-4000-8000-000000000001",
+      "id": "abb3c49e-c1d3-47d4-9daa-f65b5ee384e0",
       "name": "Reindexar pasta (manual)",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [-460, 360]
+      "position": [8352, 3520]
     },
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "nldiag-rag-reindex",
         "responseMode": "responseNode",
-        "options": { "allowedOrigins": "*" }
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
-      "id": "f2000000-0000-4000-8000-000000000002",
+      "id": "8d3ab6c6-b7e9-42fa-b35c-44dab95ed59a",
       "name": "Webhook - Reindex",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-460, 560],
+      "position": [8352, 3712],
       "webhookId": "nldiag-rag-reindex"
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { status: 'queued', folder: '1keYkwI18niYMSlrEjMKcvVYtYRCqMgKS' } }}",
+        "responseBody": "={{ { status: 'queued', mode: $('Reindex Mode').first().json.mode, reindex_count: $('Reindex Mode').first().json.ids.length, ids: $('Reindex Mode').first().json.ids, folder: '1keYkwI18niYMSlrEjMKcvVYtYRCqMgKS' } }}",
         "options": {}
       },
-      "id": "f2000000-0000-4000-8000-000000000003",
+      "id": "25bd195b-0348-454c-968b-3b7041f42788",
       "name": "Respond Queued",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [-240, 640]
+      "position": [8816, 4000]
     },
     {
       "parameters": {
         "resource": "fileFolder",
-        "operation": "search",
         "searchMethod": "query",
         "queryString": "'1keYkwI18niYMSlrEjMKcvVYtYRCqMgKS' in parents and trashed = false",
         "returnAll": true,
         "filter": {},
         "options": {}
       },
-      "id": "f2000000-0000-4000-8000-000000000004",
+      "id": "1b7b7e11-2584-45df-9f99-c41ebe41274a",
       "name": "Listar arquivos da pasta",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [-240, 440],
-      "credentials": { "googleDriveOAuth2Api": { "id": "REPLACE_ME_GDRIVE_CRED", "name": "Google Drive account" } }
-    },
-    {
-      "parameters": { "batchSize": 1, "options": {} },
-      "id": "f2000000-0000-4000-8000-000000000005",
-      "name": "Loop Over Items",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [-20, 440]
+      "position": [8576, 3600],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1yxLK6IGIPQiU21B",
+          "name": "Google Drive account"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "// Define metadados do arquivo do Drive e classifica o tipo (kind).\nconst f = $json;\nconst name = f.name || f.title || 'documento';\nconst mime = f.mimeType || '';\nconst dot = name.lastIndexOf('.');\nconst ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : '';\nlet kind = 'text';\nif (mime.includes('pdf') || ext === 'pdf') kind = 'pdf';\nelse if (mime.includes('spreadsheet') || mime.includes('excel') || ext === 'xlsx' || ext === 'xls') kind = 'xlsx';\nelse if (mime.includes('csv') || ext === 'csv') kind = 'csv';\nreturn {\n  file_id: f.id,\n  title: name,\n  code: dot > 0 ? name.slice(0, dot) : name,\n  mime_type: mime,\n  url: f.webViewLink || null,\n  source: 'drive',\n  kind\n};"
+        "options": {}
       },
-      "id": "f2000000-0000-4000-8000-000000000006",
+      "id": "9bce179b-ec0e-4e47-a950-6c6408da3615",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [8832, 3424]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Define metadados do arquivo do Drive e classifica o tipo (kind).\nconst f = $json;\nconst name = f.name || f.title || 'documento';\nconst mime = f.mimeType || '';\nconst dot = name.lastIndexOf('.');\nconst ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : '';\nlet kind = 'text';\nif (mime.includes('pdf') || ext === 'pdf') kind = 'pdf';\nelse if (mime.includes('spreadsheet') || mime.includes('excel') || ext === 'xlsx' || ext === 'xls') kind = 'xlsx';\nelse if (mime.includes('csv') || ext === 'csv') kind = 'csv';\nreturn {\n  file_id: f.id,\n  title: name,\n  code: f.code || (dot > 0 ? name.slice(0, dot) : name),\n  mime_type: mime,\n  url: f.webViewLink || null,\n  source: f.source || 'drive',\n  session_id: f.session_id || null,\n  kind\n};"
+      },
+      "id": "b308fa0e-f0e5-4e43-9ccd-bce34109576c",
       "name": "Set File Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [200, 440]
+      "position": [9040, 3488]
     },
     {
       "parameters": {
         "operation": "download",
-        "fileId": { "__rl": true, "value": "={{ $('Set File Context').item.json.file_id }}", "mode": "id" },
-        "options": { "binaryPropertyName": "data" }
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Set File Context').item.json.file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
       },
-      "id": "f2000000-0000-4000-8000-000000000007",
+      "id": "c042737d-2afc-45ab-b129-4b186cc1fcfb",
       "name": "Download File",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [420, 440],
-      "credentials": { "googleDriveOAuth2Api": { "id": "REPLACE_ME_GDRIVE_CRED", "name": "Google Drive account" } }
+      "position": [9232, 3600],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1yxLK6IGIPQiU21B",
+          "name": "Google Drive account"
+        }
+      }
     },
     {
       "parameters": {
@@ -201,9 +222,21 @@
           "values": [
             {
               "conditions": {
-                "options": { "caseSensitive": false, "typeValidation": "loose", "version": 2 },
+                "options": {
+                  "caseSensitive": false,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
                 "conditions": [
-                  { "id": "k-pdf", "leftValue": "={{ $('Set File Context').item.json.kind }}", "rightValue": "pdf", "operator": { "type": "string", "operation": "equals" } }
+                  {
+                    "id": "k-pdf",
+                    "leftValue": "={{ $('Set File Context').item.json.kind }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
                 ],
                 "combinator": "and"
               },
@@ -212,9 +245,21 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false, "typeValidation": "loose", "version": 2 },
+                "options": {
+                  "caseSensitive": false,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
                 "conditions": [
-                  { "id": "k-xlsx", "leftValue": "={{ $('Set File Context').item.json.kind }}", "rightValue": "xlsx", "operator": { "type": "string", "operation": "equals" } }
+                  {
+                    "id": "k-xlsx",
+                    "leftValue": "={{ $('Set File Context').item.json.kind }}",
+                    "rightValue": "xlsx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
                 ],
                 "combinator": "and"
               },
@@ -223,9 +268,21 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false, "typeValidation": "loose", "version": 2 },
+                "options": {
+                  "caseSensitive": false,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
                 "conditions": [
-                  { "id": "k-csv", "leftValue": "={{ $('Set File Context').item.json.kind }}", "rightValue": "csv", "operator": { "type": "string", "operation": "equals" } }
+                  {
+                    "id": "k-csv",
+                    "leftValue": "={{ $('Set File Context').item.json.kind }}",
+                    "rightValue": "csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
                 ],
                 "combinator": "and"
               },
@@ -234,49 +291,67 @@
             }
           ]
         },
-        "options": { "fallbackOutput": "extra", "renameFallbackOutput": "text" }
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "text"
+        }
       },
-      "id": "f2000000-0000-4000-8000-000000000008",
+      "id": "23967e14-d04f-4e1f-8262-db78d30a1f8c",
       "name": "Tipo do arquivo",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [640, 440]
+      "position": [9472, 3520]
     },
     {
-      "parameters": { "operation": "pdf", "binaryPropertyName": "data", "options": {} },
-      "id": "f2000000-0000-4000-8000-000000000009",
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "8e5238d0-bd89-4480-8fb7-f341c4e055f4",
       "name": "Extract PDF Text",
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1,
-      "position": [880, 200]
+      "position": [9728, 3232]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "typeValidation": "loose", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
           "conditions": [
-            { "id": "has-text", "leftValue": "={{ ($json.text || '').replace(/\\s+/g,'').length }}", "rightValue": 20, "operator": { "type": "number", "operation": "gte" } }
+            {
+              "id": "has-text",
+              "leftValue": "={{ ($json.text || '').replace(/\\s+/g,'').length }}",
+              "rightValue": 20,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
           ],
           "combinator": "and"
         },
         "options": {}
       },
-      "id": "f2000000-0000-4000-8000-000000000010",
+      "id": "a100c45a-d016-4680-b3b0-7ca51870a261",
       "name": "PDF tem texto?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1100, 200]
+      "position": [9952, 3232]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "// Monta o corpo da chamada de OCR (Azure OpenAI Responses API) para PDFs sem texto.\nconst ctx = $('Set File Context').item.json;\nconst buffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst b64 = buffer.toString('base64');\nconst ocr_body = {\n  model: 'REPLACE_ME_OCR_DEPLOYMENT',\n  input: [\n    {\n      role: 'user',\n      content: [\n        { type: 'input_text', text: 'Extraia TODO o texto deste documento em português, preservando a ordem de leitura. Responda apenas com o texto, sem comentários.' },\n        { type: 'input_file', filename: ctx.title || 'documento.pdf', file_data: 'data:application/pdf;base64,' + b64 }\n      ]\n    }\n  ]\n};\nreturn { json: { ocr_body, file_id: ctx.file_id } };"
       },
-      "id": "f2000000-0000-4000-8000-000000000011",
+      "id": "b34b392a-240d-40c8-a53b-81c3f43ddb7b",
       "name": "Prepare PDF Base64",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1320, 320]
+      "position": [10176, 3344]
     },
     {
       "parameters": {
@@ -289,56 +364,69 @@
         "jsonBody": "={{ JSON.stringify($json.ocr_body) }}",
         "options": {}
       },
-      "id": "f2000000-0000-4000-8000-000000000012",
+      "id": "1ff9319d-94e1-4a41-8d84-b795fb57be43",
       "name": "OCR via Azure",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1540, 320],
-      "credentials": { "azureOpenAiApi": { "id": "REPLACE_ME_AZURE_OPENAI_CRED", "name": "Azure OpenAI" } }
+      "position": [10384, 3344],
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "5Bz1JT1vCtggicsh",
+          "name": "Azure Open AI account-first"
+        }
+      }
     },
     {
       "parameters": {
         "jsCode": "// Extrai o texto do retorno do OCR (Responses API ou Chat Completions).\nconst r = $json;\nlet text = '';\ntry {\n  if (Array.isArray(r.output)) {\n    for (const o of r.output) {\n      if (Array.isArray(o.content)) {\n        for (const c of o.content) { if (c.text) text += c.text; }\n      }\n    }\n  }\n  text = text || r.output_text || (r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content) || '';\n} catch (e) {}\nreturn { ocr_text: text };"
       },
-      "id": "f2000000-0000-4000-8000-000000000013",
+      "id": "66690b3c-58a3-45bc-8f15-4aad9cbfd274",
       "name": "Set OCR Text",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1760, 320]
-    },
-    {
-      "parameters": { "operation": "text", "binaryPropertyName": "data", "options": {} },
-      "id": "f2000000-0000-4000-8000-000000000014",
-      "name": "Extract Document Text",
-      "type": "n8n-nodes-base.extractFromFile",
-      "typeVersion": 1,
-      "position": [880, 680]
-    },
-    {
-      "parameters": { "operation": "xlsx", "binaryPropertyName": "data", "options": {} },
-      "id": "f2000000-0000-4000-8000-000000000015",
-      "name": "Extract from Excel",
-      "type": "n8n-nodes-base.extractFromFile",
-      "typeVersion": 1,
-      "position": [880, 440]
-    },
-    {
-      "parameters": { "operation": "csv", "binaryPropertyName": "data", "options": {} },
-      "id": "f2000000-0000-4000-8000-000000000016",
-      "name": "Extract from CSV",
-      "type": "n8n-nodes-base.extractFromFile",
-      "typeVersion": 1,
-      "position": [880, 560]
+      "position": [10608, 3344]
     },
     {
       "parameters": {
-        "jsCode": "// Converge texto de PDF / OCR / documento / planilha (1 item por arquivo).\nconst ctx = $('Set File Context').first().json;\nconst items = $input.all();\nconst texts = items\n  .map(i => i.json.text != null ? i.json.text : (i.json.data != null ? i.json.data : i.json.ocr_text))\n  .filter(v => v != null && String(v).trim() !== '');\nlet content = '';\nif (texts.length) {\n  content = texts.join('\\n');\n} else {\n  // linhas de planilha/csv → texto chave: valor\n  for (const it of items) {\n    const row = it.json || {};\n    const parts = [];\n    for (const k in row) {\n      const v = row[k];\n      if (v != null && v !== '') parts.push(k + ': ' + v);\n    }\n    if (parts.length) content += parts.join('. ') + '\\n';\n  }\n}\ncontent = content\n  .replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/g, ' ')\n  .replace(/[ \\t]+/g, ' ')\n  .slice(0, 50000);\nif (content.replace(/\\s+/g, '').length < 20) {\n  throw new Error('Documento sem texto utilizável: ' + (ctx.title || ctx.file_id) + ' (file_id=' + ctx.file_id + '). Se for digitalização, configure o OCR.');\n}\nreturn [{ json: {\n  file_id: ctx.file_id,\n  title: ctx.title,\n  code: ctx.code,\n  url: ctx.url,\n  mime_type: ctx.mime_type,\n  source: 'drive',\n  content_text: content\n} }];"
+        "operation": "text",
+        "options": {}
       },
-      "id": "f2000000-0000-4000-8000-000000000017",
+      "id": "d639d03f-6889-4ad9-a611-a350bc1b740c",
+      "name": "Extract Document Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [9712, 3760]
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "id": "873980df-92f5-4d54-a85f-8be68caac0d1",
+      "name": "Extract from Excel",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [9712, 3520]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "62047c86-e53a-4c02-9abb-a311fa52c049",
+      "name": "Extract from CSV",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [9712, 3632]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Converge texto de PDF / OCR / documento / planilha (1 item por arquivo).\nconst ctx = $('Set File Context').first().json;\nconst items = $input.all();\nconst texts = items\n  .map(i => i.json.text != null ? i.json.text : (i.json.data != null ? i.json.data : i.json.ocr_text))\n  .filter(v => v != null && String(v).trim() !== '');\nlet content = '';\nif (texts.length) {\n  content = texts.join('\\n');\n} else {\n  // linhas de planilha/csv → texto chave: valor\n  for (const it of items) {\n    const row = it.json || {};\n    const parts = [];\n    for (const k in row) {\n      const v = row[k];\n      if (v != null && v !== '') parts.push(k + ': ' + v);\n    }\n    if (parts.length) content += parts.join('. ') + '\\n';\n  }\n}\ncontent = content\n  .replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/g, ' ')\n  .replace(/[ \\t]+/g, ' ')\n  .slice(0, 50000);\nif (content.replace(/\\s+/g, '').length < 20) {\n  throw new Error('Documento sem texto utilizável: ' + (ctx.title || ctx.file_id) + ' (file_id=' + ctx.file_id + '). Se for digitalização, configure o OCR.');\n}\nreturn [{ json: {\n  file_id: ctx.file_id,\n  title: ctx.title,\n  code: ctx.code,\n  url: ctx.url,\n  mime_type: ctx.mime_type,\n  source: ctx.source || 'drive',\n  session_id: ctx.session_id || null,\n  content_text: content\n} }];"
+      },
+      "id": "17d1ec89-16cc-407f-a596-db68c8a3413e",
       "name": "Normalize Doc",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 440]
+      "position": [10816, 3504]
     },
     {
       "parameters": {
@@ -346,47 +434,393 @@
         "query": "SELECT * FROM nl_rag_purge_file('{{ $json.file_id }}');",
         "options": {}
       },
-      "id": "f2000000-0000-4000-8000-000000000018",
+      "id": "d57dcc16-aa08-4156-9e82-ab29fc18e15b",
       "name": "Purge Old Chunks (Drive)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [2220, 440],
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "position": [11040, 3504],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT nl_rag_upsert_metadata(\n  '{{ $('Normalize Doc').item.json.file_id }}',\n  '{{ ($('Normalize Doc').item.json.title || '').replace(/'/g, \"''\") }}',\n  {{ $('Normalize Doc').item.json.code ? \"'\" + String($('Normalize Doc').item.json.code).replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  {{ $('Normalize Doc').item.json.url ? \"'\" + String($('Normalize Doc').item.json.url).replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  'drive',\n  '{{ ($('Normalize Doc').item.json.mime_type || 'application/octet-stream').replace(/'/g, \"''\") }}'\n);",
+        "query": "SELECT nl_rag_upsert_metadata(\n  '{{ $('Normalize Doc').item.json.file_id }}',\n  '{{ ($('Normalize Doc').item.json.title || '').replace(/'/g, \"''\") }}',\n  {{ $('Normalize Doc').item.json.code ? \"'\" + String($('Normalize Doc').item.json.code).replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  {{ $('Normalize Doc').item.json.url ? \"'\" + String($('Normalize Doc').item.json.url).replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  '{{ ($('Normalize Doc').item.json.source || 'drive').replace(/'/g, \"''\") }}',\n  '{{ ($('Normalize Doc').item.json.mime_type || 'application/octet-stream').replace(/'/g, \"''\") }}'\n);",
         "options": {}
       },
-      "id": "f2000000-0000-4000-8000-000000000019",
+      "id": "1f55edd5-acfc-4171-8456-540f7e4532ee",
       "name": "Upsert Metadata (Drive)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [2440, 440],
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "position": [11264, 3504],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
       "parameters": {
         "mode": "insert",
-        "tableName": { "__rl": true, "value": "nl_documents", "mode": "list" },
-        "options": { "queryName": "nl_match_documents" }
+        "tableName": {
+          "__rl": true,
+          "value": "nl_documents",
+          "mode": "list"
+        },
+        "options": {
+          "queryName": "nl_match_documents"
+        }
       },
-      "id": "f2000000-0000-4000-8000-000000000020",
+      "id": "d15fa36e-a1c8-472b-832c-d7da6ea4c409",
       "name": "Insert Documents (Drive)",
       "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
       "typeVersion": 1.1,
-      "position": [2660, 440],
-      "credentials": { "supabaseApi": { "id": "REPLACE_ME_SUPABASE_CRED", "name": "Supabase account" } }
+      "position": [11472, 3504],
+      "credentials": {
+        "supabaseApi": {
+          "id": "i5Q8tj8Pyc9XjSGd",
+          "name": "Supabase account"
+        }
+      }
     },
     {
-      "parameters": { "model": "text-embedding-3-small", "options": {} },
-      "id": "f2000000-0000-4000-8000-000000000021",
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "effe26b0-f20a-4512-be8e-702426a9a388",
       "name": "Azure OpenAI Embeddings (Drive)",
       "type": "@n8n/n8n-nodes-langchain.embeddingsAzureOpenAi",
       "typeVersion": 1,
-      "position": [2580, 660],
-      "credentials": { "azureOpenAiApi": { "id": "REPLACE_ME_AZURE_OPENAI_CRED", "name": "Azure OpenAI" } }
+      "position": [11392, 3712],
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "5Bz1JT1vCtggicsh",
+          "name": "Azure Open AI account-first"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Libera o binário da RAM após indexar e segue o loop.\ntry {\n  if ($input.item && $input.item.binary) {\n    for (const k of Object.keys($input.item.binary)) { Reflect.deleteProperty($input.item.binary, k); }\n  }\n} catch (e) {}\nreturn { json: { indexed: true } };"
+      },
+      "id": "9fb8f598-8c91-4c76-bf11-f2d5df443273",
+      "name": "Limpar RAM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [11744, 3504]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-rag-upload",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*",
+          "binaryPropertyName": "data"
+        }
+      },
+      "id": "ba6599e6-c018-45a5-b117-53be1b5a66c9",
+      "name": "Webhook RAG Upload",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [7008, 4256],
+      "webhookId": "nldiag-rag-upload-file"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Upload unitário (arquivo real, multipart). Extrai filename do binário e\n// session_id opcional (quando enviado pelo chat → indexa só naquela conversa).\nconst item = $input.first();\nconst body = item.json.body || item.json || {};\nconst q = item.json.query || {};\nconst bin = item.binary && (item.binary.data || item.binary[Object.keys(item.binary)[0]]);\nif (!bin) throw new Error('Arquivo \"data\" não enviado no multipart.');\nconst filename = bin.fileName || body.filename || '';\nif (!filename) throw new Error('Não foi possível determinar o nome do arquivo.');\nconst session_id = (body.session_id || body.sessionId || q.sessionId || q.session_id || '').toString().trim() || null;\nitem.json = { ...item.json, filename, mime_type: bin.mimeType || 'application/octet-stream', session_id };\nreturn item;"
+      },
+      "id": "11fc5d59-643b-4cf2-bb2c-a83c38779920",
+      "name": "Parse Upload Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [7232, 4256]
+    },
+    {
+      "parameters": {
+        "jsCode": "// RAG global → pasta única do Drive (sem categorias).\nconst webhook = $('Parse Upload Payload').first().json;\nreturn [{\n  json: {\n    filename: webhook.filename,\n    mime_type: webhook.mime_type,\n    session_id: webhook.session_id || null,\n    drive_folder_id: '1keYkwI18niYMSlrEjMKcvVYtYRCqMgKS'\n  },\n  binary: $('Webhook RAG Upload').first().binary\n}];"
+      },
+      "id": "ac6295de-055b-4227-a936-2e474a7ca158",
+      "name": "Build Upload Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [7456, 4256]
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "={{ $json.filename }}",
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.drive_folder_id }}",
+            "mode": "id"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {
+          "fields": ["id", "name", "mimeType", "webViewLink", "trashed"]
+        }
+      },
+      "id": "48d12613-5fef-4c52-b8ae-3bb40653b4e4",
+      "name": "Search Drive by Filename",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [7680, 4256],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1yxLK6IGIPQiU21B",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Decide se substitui (mesmo nome já existe → mantém file_id) ou cria novo.\nconst ctx = $('Build Upload Context').first().json;\nconst hits = $input.all().map(i => i.json).filter(f => f && f.id && f.name && !f.trashed);\nconst exact = hits.find(f => f.name === ctx.filename);\nconst binary = $('Build Upload Context').first().binary;\nreturn [{\n  json: {\n    ...ctx,\n    existing_file_id: exact ? exact.id : null,\n    existing_web_view_link: exact ? (exact.webViewLink || null) : null,\n    action: exact ? 'replace' : 'create'\n  },\n  binary\n}];"
+      },
+      "id": "d278a2b6-8fba-465f-936d-cf24e4aecbe8",
+      "name": "Decide Replace or Create",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [7888, 4256]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-upload-replace",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "replace",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "434f88af-efbc-4d24-bca4-577cd9fb9ddf",
+      "name": "Replace?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [8112, 4256]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.existing_file_id }}",
+          "mode": "id"
+        },
+        "changeFileContent": true,
+        "options": {}
+      },
+      "id": "df1d4b26-1a38-489d-a3c8-7fd9b277f942",
+      "name": "Drive: Update File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [8352, 4160],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1yxLK6IGIPQiU21B",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "={{ $json.filename }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $json.drive_folder_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "ba549be2-57ec-43b5-b338-dea73c017c42",
+      "name": "Drive: Upload File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [8352, 4368],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "1yxLK6IGIPQiU21B",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normaliza o resultado do Drive (update OU upload) para o shape do Loop Over Items.\n// source='chat' quando há session_id (anexo de conversa) → indexado só naquela sessão.\nconst drive = $input.first().json || {};\nconst ctx = $('Decide Replace or Create').first().json;\nconst fileId = drive.id || ctx.existing_file_id;\nif (!fileId) throw new Error('Drive não retornou file_id após upload/update.');\nconst dot = ctx.filename.lastIndexOf('.');\nconst code = dot > 0 ? ctx.filename.substring(0, dot) : ctx.filename;\nreturn [{\n  json: {\n    id: fileId,\n    name: ctx.filename,\n    mimeType: drive.mimeType || ctx.mime_type,\n    webViewLink: drive.webViewLink || ctx.existing_web_view_link || null,\n    code,\n    source: ctx.session_id ? 'chat' : 'upload',\n    session_id: ctx.session_id || null\n  }\n}];"
+      },
+      "id": "60220e69-441d-438b-b63f-36e685bee39f",
+      "name": "Set Upload Item Shape",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [8592, 4256]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', file_id: $json.id, action: $('Decide Replace or Create').first().json.action, session_id: $json.session_id } }}",
+        "options": {}
+      },
+      "id": "64b97945-c511-4756-8564-26beaf31d04d",
+      "name": "Respond Upload",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [8832, 4176]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reindex: aceita { file_id } | { file_ids:[...] } | { ids:[...] }.\n// Sem ids → reprocessa a PASTA inteira do Drive (comportamento antigo).\nconst b = ($input.first().json.body) || $input.first().json || {};\nlet ids = [];\nif (Array.isArray(b.file_ids)) ids = b.file_ids;\nelse if (Array.isArray(b.ids)) ids = b.ids;\nelse if (b.file_id) ids = [b.file_id];\nelse if (b.id) ids = [b.id];\nids = ids.map(x => String(x || '').trim()).filter(Boolean);\nreturn [{ json: { mode: ids.length ? 'ids' : 'folder', ids, ids_csv: ids.map(s => s.replace(/[^a-zA-Z0-9_\\-\\.]/g, '')).join(',') } }];"
+      },
+      "id": "d9e6d53e-68bf-498c-94b3-7cf837c4cf39",
+      "name": "Reindex Mode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [8576, 3712]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-reindex-ids",
+              "leftValue": "={{ $json.mode }}",
+              "rightValue": "ids",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "67892bb8-a92c-42e2-b52d-117941b7d0f2",
+      "name": "Tem IDs?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [8928, 3808]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT m.file_id AS id,\n       COALESCE(m.title, m.file_id) AS name,\n       COALESCE(m.mime_type, 'application/octet-stream') AS \"mimeType\",\n       m.url AS \"webViewLink\",\n       m.code AS code\nFROM nl_document_metadata m\nWHERE m.file_id = ANY(string_to_array('{{ $json.ids_csv }}', ','));",
+        "options": {}
+      },
+      "id": "205410c8-1713-4ba3-abef-21d8c80440ed",
+      "name": "Fetch Reindex Metadata",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [9136, 3808],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mantém o shape esperado pelo Loop Over Items (reprocessa do mesmo file_id no Drive).\nconst rows = $input.all();\nif (rows.length === 0) throw new Error('Nenhum documento encontrado para os file_ids fornecidos.');\nreturn rows.map(r => ({\n  json: {\n    id: r.json.id,\n    name: r.json.name,\n    mimeType: r.json.mimeType,\n    webViewLink: r.json.webViewLink,\n    code: r.json.code,\n    source: 'drive',\n    session_id: null\n  }\n}));"
+      },
+      "id": "4def0305-91f1-43a7-b346-096f06d8ae03",
+      "name": "Set Reindex Item Shape",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [9360, 3808]
+    },
+    {
+      "parameters": {
+        "content": "## NL Diagnostica — RAG (ingestão)\n\n**Fonte principal: pasta do Google Drive**\n`1keYkwI18niYMSlrEjMKcvVYtYRCqMgKS`\n\n### Endpoints\n- `POST /nldiag-rag-upload` (multipart: `data`=arquivo, `session_id?`) — **enviar/substituir 1 arquivo**. Mesmo nome → substitui (mantém file_id); senão cria. Com `session_id` → indexa só naquela conversa (source='chat').\n- `POST /nldiag-rag-reindex` — `{file_id}` ou `{file_ids:[...]}` reprocessa **só esse(s)**; sem corpo → reprocessa a **pasta inteira**.\n- `POST /nldiag-rag-upsert` — upsert por texto: `{ \"file_id\":\"MANUAL-COAG-01\", \"title\":\"Manual\", \"content_text\":\"...\" }`.\n- *Reindexar pasta (manual)* — trigger manual da pasta.\n\nFluxo Drive: download → detectar tipo (PDF/Excel/CSV/texto) → extrair (OCR fallback p/ PDF digitalizado) → `nl_rag_purge_file` → `nl_rag_upsert_metadata` → chunk → embed → `nl_documents` (metadata leva `file_id`, `code`, `session_id`).\n\nRAG é GLOBAL (sem categorias/ACL). Anexos de chat ficam restritos à sessão via `session_id` na metadata (ver migration 008 / `nl_match_documents`).\n\nCredenciais: Google Drive, NLDiag-DB, Supabase, Azure OpenAI (+ URL/deployment de OCR).",
+        "height": 460,
+        "width": 460
+      },
+      "id": "0f5c205b-e489-472f-93e1-5b6ed08fa164",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [7696, 2352]
+    },
+    {
+      "parameters": {},
+      "id": "9d1016b2-8d17-4c77-b597-1f7509022ee0",
+      "name": "Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [9248, 3120]
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $('Normalize Payload').item.json.content_text }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "file_id",
+                "value": "={{ $('Normalize Payload').item.json.file_id }}"
+              },
+              {
+                "name": "code",
+                "value": "={{ $('Normalize Payload').item.json.code }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b5211e5e-8641-4519-955e-ffdc969b3779",
+      "name": "Default Data Loader1",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [9296, 2976]
+    },
+    {
+      "parameters": {},
+      "id": "2cf0e088-f2c6-4b8d-b6df-e16b635eb56b",
+      "name": "Character Text Splitter1",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [11568, 3904]
     },
     {
       "parameters": {
@@ -395,95 +829,571 @@
         "options": {
           "metadata": {
             "metadataValues": [
-              { "name": "file_id", "value": "={{ $('Normalize Doc').item.json.file_id }}" },
-              { "name": "code", "value": "={{ $('Normalize Doc').item.json.code }}" }
+              {
+                "name": "file_id",
+                "value": "={{ $('Normalize Doc').item.json.file_id }}"
+              },
+              {
+                "name": "code",
+                "value": "={{ $('Normalize Doc').item.json.code }}"
+              },
+              {
+                "name": "session_id",
+                "value": "={{ $('Normalize Doc').item.json.session_id }}"
+              }
             ]
           }
         }
       },
-      "id": "f2000000-0000-4000-8000-000000000022",
-      "name": "Default Data Loader (Drive)",
+      "id": "9e5a1b24-df7a-4a35-b512-2abcf37f0256",
+      "name": "Default Data Loader",
       "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
-      "typeVersion": 1.1,
-      "position": [2780, 660]
-    },
-    {
-      "parameters": { "chunkSize": 1000, "chunkOverlap": 100, "options": {} },
-      "id": "f2000000-0000-4000-8000-000000000023",
-      "name": "Recursive Text Splitter (Drive)",
-      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
       "typeVersion": 1,
-      "position": [2780, 860]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// Libera o binário da RAM após indexar e segue o loop.\ntry {\n  if ($input.item && $input.item.binary) {\n    for (const k of Object.keys($input.item.binary)) { Reflect.deleteProperty($input.item.binary, k); }\n  }\n} catch (e) {}\nreturn { json: { indexed: true } };"
-      },
-      "id": "f2000000-0000-4000-8000-000000000024",
-      "name": "Limpar RAM",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2880, 440]
-    },
-    {
-      "parameters": {
-        "content": "## NL Diagnostica — RAG (ingestão)\n\n**Fonte principal: pasta do Google Drive**\n`1keYkwI18niYMSlrEjMKcvVYtYRCqMgKS`\n\nDispare a reindexação:\n- manualmente (*Reindexar pasta*), ou\n- `POST /nldiag-rag-reindex`\n\nFluxo Drive: listar pasta → loop → download → detectar tipo (PDF/Excel/CSV/texto) → extrair (OCR de fallback p/ PDF digitalizado) → limpar → `nl_rag_purge_file` → `nl_rag_upsert_metadata` (source='drive') → chunk → embed → `nl_documents`.\n\n**Upsert por texto (alternativo)**\n`POST /nldiag-rag-upsert` com JSON:\n```json\n{ \"file_id\": \"MANUAL-COAG-01\", \"title\": \"Manual\", \"content_text\": \"...\" }\n```\nUsado pelo painel *Documentos* do front e por `ingest-rag-docs.ps1`.\n\nRAG é GLOBAL (sem categorias/ACL).\n\nCredenciais a configurar: Google Drive, NLDiag-DB, Supabase, Azure OpenAI (+ URL/deployment de OCR).",
-        "height": 460,
-        "width": 460
-      },
-      "id": "f1000099-0000-4000-8000-000000000001",
-      "name": "Sticky Note",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [-460, -300]
+      "position": [11616, 3760]
     }
   ],
-  "pinData": {},
   "connections": {
-    "Webhook - Upsert": { "main": [[{ "node": "Normalize Payload", "type": "main", "index": 0 }]] },
-    "Normalize Payload": { "main": [[{ "node": "Purge Old Chunks", "type": "main", "index": 0 }]] },
-    "Purge Old Chunks": { "main": [[{ "node": "Upsert Metadata", "type": "main", "index": 0 }]] },
-    "Upsert Metadata": { "main": [[{ "node": "Insert Documents", "type": "main", "index": 0 }]] },
-    "Insert Documents": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] },
-    "Azure OpenAI Embeddings": { "ai_embedding": [[{ "node": "Insert Documents", "type": "ai_embedding", "index": 0 }]] },
-    "Default Data Loader": { "ai_document": [[{ "node": "Insert Documents", "type": "ai_document", "index": 0 }]] },
-    "Recursive Text Splitter": { "ai_textSplitter": [[{ "node": "Default Data Loader", "type": "ai_textSplitter", "index": 0 }]] },
-
-    "Reindexar pasta (manual)": { "main": [[{ "node": "Listar arquivos da pasta", "type": "main", "index": 0 }]] },
-    "Webhook - Reindex": { "main": [[{ "node": "Listar arquivos da pasta", "type": "main", "index": 0 }, { "node": "Respond Queued", "type": "main", "index": 0 }]] },
-    "Listar arquivos da pasta": { "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]] },
-    "Loop Over Items": { "main": [[], [{ "node": "Set File Context", "type": "main", "index": 0 }]] },
-    "Set File Context": { "main": [[{ "node": "Download File", "type": "main", "index": 0 }]] },
-    "Download File": { "main": [[{ "node": "Tipo do arquivo", "type": "main", "index": 0 }]] },
-    "Tipo do arquivo": { "main": [
-      [{ "node": "Extract PDF Text", "type": "main", "index": 0 }],
-      [{ "node": "Extract from Excel", "type": "main", "index": 0 }],
-      [{ "node": "Extract from CSV", "type": "main", "index": 0 }],
-      [{ "node": "Extract Document Text", "type": "main", "index": 0 }]
-    ] },
-    "Extract PDF Text": { "main": [[{ "node": "PDF tem texto?", "type": "main", "index": 0 }]] },
-    "PDF tem texto?": { "main": [
-      [{ "node": "Normalize Doc", "type": "main", "index": 0 }],
-      [{ "node": "Prepare PDF Base64", "type": "main", "index": 0 }]
-    ] },
-    "Prepare PDF Base64": { "main": [[{ "node": "OCR via Azure", "type": "main", "index": 0 }]] },
-    "OCR via Azure": { "main": [[{ "node": "Set OCR Text", "type": "main", "index": 0 }]] },
-    "Set OCR Text": { "main": [[{ "node": "Normalize Doc", "type": "main", "index": 0 }]] },
-    "Extract Document Text": { "main": [[{ "node": "Normalize Doc", "type": "main", "index": 0 }]] },
-    "Extract from Excel": { "main": [[{ "node": "Normalize Doc", "type": "main", "index": 0 }]] },
-    "Extract from CSV": { "main": [[{ "node": "Normalize Doc", "type": "main", "index": 0 }]] },
-    "Normalize Doc": { "main": [[{ "node": "Purge Old Chunks (Drive)", "type": "main", "index": 0 }]] },
-    "Purge Old Chunks (Drive)": { "main": [[{ "node": "Upsert Metadata (Drive)", "type": "main", "index": 0 }]] },
-    "Upsert Metadata (Drive)": { "main": [[{ "node": "Insert Documents (Drive)", "type": "main", "index": 0 }]] },
-    "Insert Documents (Drive)": { "main": [[{ "node": "Limpar RAM", "type": "main", "index": 0 }]] },
-    "Limpar RAM": { "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]] },
-    "Azure OpenAI Embeddings (Drive)": { "ai_embedding": [[{ "node": "Insert Documents (Drive)", "type": "ai_embedding", "index": 0 }]] },
-    "Default Data Loader (Drive)": { "ai_document": [[{ "node": "Insert Documents (Drive)", "type": "ai_document", "index": 0 }]] },
-    "Recursive Text Splitter (Drive)": { "ai_textSplitter": [[{ "node": "Default Data Loader (Drive)", "type": "ai_textSplitter", "index": 0 }]] }
+    "Webhook - Upsert": {
+      "main": [
+        [
+          {
+            "node": "Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "Purge Old Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Purge Old Chunks": {
+      "main": [
+        [
+          {
+            "node": "Upsert Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Metadata": {
+      "main": [
+        [
+          {
+            "node": "Insert Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Documents": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert Documents",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reindexar pasta (manual)": {
+      "main": [
+        [
+          {
+            "node": "Listar arquivos da pasta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Reindex": {
+      "main": [
+        [
+          {
+            "node": "Reindex Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar arquivos da pasta": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Set File Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set File Context": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Tipo do arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tipo do arquivo": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from Excel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from CSV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Document Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF Text": {
+      "main": [
+        [
+          {
+            "node": "PDF tem texto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF tem texto?": {
+      "main": [
+        [
+          {
+            "node": "Normalize Doc",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare PDF Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare PDF Base64": {
+      "main": [
+        [
+          {
+            "node": "OCR via Azure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR via Azure": {
+      "main": [
+        [
+          {
+            "node": "Set OCR Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set OCR Text": {
+      "main": [
+        [
+          {
+            "node": "Normalize Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Document Text": {
+      "main": [
+        [
+          {
+            "node": "Normalize Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from Excel": {
+      "main": [
+        [
+          {
+            "node": "Normalize Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from CSV": {
+      "main": [
+        [
+          {
+            "node": "Normalize Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Doc": {
+      "main": [
+        [
+          {
+            "node": "Purge Old Chunks (Drive)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Purge Old Chunks (Drive)": {
+      "main": [
+        [
+          {
+            "node": "Upsert Metadata (Drive)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Metadata (Drive)": {
+      "main": [
+        [
+          {
+            "node": "Insert Documents (Drive)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Documents (Drive)": {
+      "main": [
+        [
+          {
+            "node": "Limpar RAM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI Embeddings (Drive)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert Documents (Drive)",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpar RAM": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook RAG Upload": {
+      "main": [
+        [
+          {
+            "node": "Parse Upload Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Upload Payload": {
+      "main": [
+        [
+          {
+            "node": "Build Upload Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Upload Context": {
+      "main": [
+        [
+          {
+            "node": "Search Drive by Filename",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Drive by Filename": {
+      "main": [
+        [
+          {
+            "node": "Decide Replace or Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide Replace or Create": {
+      "main": [
+        [
+          {
+            "node": "Replace?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace?": {
+      "main": [
+        [
+          {
+            "node": "Drive: Update File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Drive: Upload File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive: Update File": {
+      "main": [
+        [
+          {
+            "node": "Set Upload Item Shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive: Upload File": {
+      "main": [
+        [
+          {
+            "node": "Set Upload Item Shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Upload Item Shape": {
+      "main": [
+        [
+          {
+            "node": "Respond Upload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reindex Mode": {
+      "main": [
+        [
+          {
+            "node": "Tem IDs?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond Queued",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem IDs?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Reindex Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Listar arquivos da pasta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Reindex Metadata": {
+      "main": [
+        [
+          {
+            "node": "Set Reindex Item Shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Reindex Item Shape": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader1",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader1": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert Documents",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Character Text Splitter1": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert Documents (Drive)",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "active": false,
-  "settings": { "executionOrder": "v1", "binaryMode": "separate", "availableInMCP": false },
-  "id": "NLDiagRAG",
-  "tags": []
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  }
 }

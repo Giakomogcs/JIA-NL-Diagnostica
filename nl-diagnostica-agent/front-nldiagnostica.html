@@ -21,11 +21,15 @@
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
   a{color:var(--pri2)}
-  button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:8px 14px;font-weight:600;transition:background .15s,color .15s}
-  .btn-pri{background:var(--pri);color:#fff} .btn-pri:hover{background:var(--pri2)}
-  .btn-ok{background:var(--ok);color:#fff} .btn-ok:hover{filter:brightness(.95)}
-  .btn-no{background:var(--no);color:#fff} .btn-no:hover{filter:brightness(.95)}
-  .btn-ghost{background:#fff;color:var(--txt);border:1px solid var(--line)} .btn-ghost:hover{background:var(--chip)}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;padding:8px 14px;font-weight:600;transition:background .15s,color .15s,box-shadow .15s,transform .08s,filter .15s}
+  button:active{transform:translateY(1px)}
+  button:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(.2);box-shadow:none}
+  button:disabled:active{transform:none}
+  .btn-pri{background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;box-shadow:0 1px 2px rgba(224,124,18,.35)} .btn-pri:hover{filter:brightness(1.06);box-shadow:0 3px 10px rgba(224,124,18,.32)}
+  .btn-ok{background:linear-gradient(135deg,#1fb955,var(--ok));color:#fff;box-shadow:0 1px 2px rgba(22,163,74,.3)} .btn-ok:hover{filter:brightness(1.05)}
+  .btn-no{background:linear-gradient(135deg,#ef4444,var(--no));color:#fff;box-shadow:0 1px 2px rgba(220,38,38,.3)} .btn-no:hover{filter:brightness(1.05)}
+  .btn-ghost{background:#fff;color:var(--txt);border:1px solid var(--line)} .btn-ghost:hover{background:var(--pri-soft);color:var(--pri2);border-color:var(--pri)}
+  .btn-ghost:disabled{opacity:.45;cursor:not-allowed;background:#fff;color:var(--muted);border-color:var(--line)}
   input,select,textarea{background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:14px;width:100%}
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-soft)}
   .hidden{display:none!important}
@@ -92,19 +96,36 @@
     .main-grid:not(.sidebar-closed) .sidebar-backdrop{display:block;pointer-events:auto}
   }
   h2{color:var(--txt)}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow);border-top:3px solid var(--pri)}
-  .stat .n{font-size:26px;font-weight:800;color:var(--pri2)} .stat .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
-  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
-  .toolbar .f{display:flex;flex-direction:column;gap:4px}
-  .toolbar .f label{font-size:11px;color:var(--muted)}
+  /* cabeçalho de página padrão */
+  .page-head{display:flex;align-items:center;gap:13px;margin-bottom:6px}
+  .page-head h2{margin:0;font-size:20px;font-weight:800;letter-spacing:-.3px}
+  .page-head .ph-icon{width:40px;height:40px;border-radius:11px;background:var(--pri-soft);color:var(--pri2);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid #ffe2c2}
+  .page-head .ph-icon svg{width:20px;height:20px}
+  .page-sub{color:var(--muted);font-size:13px;margin:2px 0 20px;max-width:780px;line-height:1.5}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px}
+  .stat{position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 16px 15px 19px;box-shadow:var(--shadow);overflow:hidden;transition:transform .15s ease,box-shadow .15s ease}
+  .stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--pri),var(--pri2))}
+  .stat:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(16,24,40,.10)}
+  .stat .n{font-size:28px;font-weight:800;color:var(--txt);line-height:1} .stat .l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin-top:6px;font-weight:600}
+  .stat.clickable{cursor:pointer}
+  .stat.active{box-shadow:0 0 0 2px var(--pri),var(--shadow)}
+  .stat.s-aceitar::before{background:linear-gradient(180deg,#22c55e,#15803d)}
+  .stat.s-recusar::before{background:linear-gradient(180deg,#ef4444,#b91c1c)}
+  .stat.s-analisar::before{background:linear-gradient(180deg,#f59e0b,#d97706)}
+  .stat.s-aceitos::before{background:linear-gradient(180deg,#16a34a,#166534)}
+  .stat.s-recusados::before{background:linear-gradient(180deg,#dc2626,#991b1b)}
+  .stat.s-neutro::before{background:linear-gradient(180deg,#94a3b8,#64748b)}
+  .toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .toolbar .f{display:flex;flex-direction:column;gap:5px}
+  .toolbar .f label{font-size:11px;color:var(--muted);font-weight:600}
   .toolbar .f.search{flex:1;min-width:200px}
-  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
-  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
-  th{background:#fbfcfe;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
+  th{background:#f8fafc;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.7px;font-weight:700}
+  tbody tr{transition:background .12s ease}
   tr:last-child td{border-bottom:none}
-  tr:hover td{background:#fff8f0}
-  .tag{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+  tbody tr:hover td{background:var(--pri-soft)}
+  .tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
   .tag.novo{color:#2563eb;border-color:#bfdbfe;background:#eff6ff}
   .tag.sug_a{color:#15803d;border-color:#bbf7d0;background:#f0fdf4}
   .tag.sug_r{color:#b91c1c;border-color:#fecaca;background:#fef2f2}
@@ -112,11 +133,11 @@
   .tag.recusado{background:var(--nobg);color:#b91c1c;border-color:#fecaca}
   .tag.analisando{color:var(--warn);border-color:#fde68a;background:#fffbeb}
   .modo{font-size:11px;color:var(--muted)}
-  .score-bar{height:6px;background:var(--chip);border-radius:4px;overflow:hidden;width:70px}
-  .score-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand1),var(--brand2))}
-  .row-actions{display:flex;gap:6px}
-  .row-actions button{padding:5px 9px;font-size:12px}
-  .pager{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:12px;color:var(--muted)}
+  .score-bar{height:7px;background:var(--chip);border-radius:999px;overflow:hidden;width:80px}
+  .score-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--pri),var(--pri2));transition:width .4s ease}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .row-actions button{padding:5px 11px;font-size:12px}
+  .pager{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:14px;color:var(--muted);font-size:13px}
   /* modal */
   .modal-bg{position:fixed;inset:0;background:rgba(16,24,40,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
   .modal{background:var(--card);border:1px solid var(--line);border-radius:14px;max-width:900px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(16,24,40,.25)}
@@ -124,25 +145,102 @@
   .modal .body{padding:20px}
   .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:16px}
   .kv div{background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  /* toast */
+  #toastRoot{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:none}
+  .toast{display:flex;align-items:center;gap:10px;min-width:240px;max-width:420px;background:var(--card);color:var(--txt);border:1px solid var(--line);border-left:4px solid var(--pri);padding:12px 16px;border-radius:12px;box-shadow:0 10px 30px rgba(16,24,40,.18);font-size:13.5px;font-weight:500;pointer-events:auto;opacity:0;transform:translateY(12px);transition:opacity .25s ease,transform .25s ease}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .toast .ti{flex:0 0 auto;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;font-size:12px;font-weight:700}
+  .toast.info{border-left-color:var(--pri)} .toast.info .ti{background:var(--pri)}
+  .toast.success{border-left-color:var(--ok)} .toast.success .ti{background:var(--ok)}
+  .toast.error{border-left-color:var(--no)} .toast.error .ti{background:var(--no)}
+  .toast .tx{flex:1;line-height:1.4}
+  /* confirm dialog */
+  .modal.confirm{max-width:420px}
+  .modal.confirm .body{padding:22px}
+  .confirm-ico{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 14px}
+  .confirm-ico.danger{background:var(--nobg);color:var(--no)}
+  .confirm-ico.ask{background:var(--pri-soft);color:var(--pri2)}
+  .confirm-msg{text-align:center;font-size:15px;line-height:1.5;color:var(--txt);margin-bottom:20px}
+  .confirm-actions{display:flex;gap:10px;justify-content:center}
+  .confirm-actions button{min-width:110px}
   .kv .k{font-size:11px;color:var(--muted)} .kv .v{font-weight:600}
   .close{margin-left:auto;background:rgba(255,255,255,.2);color:#fff;font-size:18px;padding:2px 10px;border-radius:8px}
   .close:hover{background:rgba(255,255,255,.35)}
-  /* chat */
-  .chat-wrap{display:grid;grid-template-columns:240px 1fr;gap:14px;height:calc(100vh - 130px)}
-  .sessions{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto;box-shadow:var(--shadow)}
-  .sessions .s{padding:8px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sessions .s:hover,.sessions .s.active{background:var(--pri-soft);color:var(--pri2)}
-  .chat{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
-  .msgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
-  .msg{max-width:80%;padding:10px 14px;border-radius:12px;white-space:pre-wrap;line-height:1.5}
-  .msg.u{align-self:flex-end;background:var(--pri);color:#fff}
-  .msg.a{align-self:flex-start;background:var(--chip);border:1px solid var(--line)}
+  /* chat — widget flutuante */
+  #chatFab{position:fixed;right:22px;bottom:22px;z-index:120;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(224,124,18,.45);border:none;padding:0}
+  #chatFab svg{width:24px;height:24px}
+  #chatFab:hover{filter:brightness(1.06);transform:translateY(-2px)}
+  #chatFab.hidden{display:none!important}
+  #chatPanel{position:fixed;right:22px;bottom:22px;z-index:121;width:400px;max-width:calc(100vw - 28px);height:620px;max-height:calc(100vh - 100px);background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgba(16,24,40,.28);display:flex;flex-direction:column;overflow:hidden;animation:cpIn .18s ease}
+  @keyframes cpIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  .cp-head{display:flex;align-items:center;gap:8px;padding:12px 14px;background:linear-gradient(135deg,var(--brand1),var(--brand2));color:#fff;flex-shrink:0}
+  .cp-head svg{width:18px;height:18px}
+  .cp-head strong{font-size:14px}
+  .cp-ctx{font-size:10.5px;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+  .cp-head .cp-icon{margin-left:0;background:rgba(255,255,255,.16);color:#fff;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0}
+  .cp-head .cp-icon:first-of-type{margin-left:auto}
+  .cp-head .cp-icon:hover{background:rgba(255,255,255,.3)}
+  .cp-head .cp-icon svg{width:15px;height:15px}
+  .cp-sessions{flex-shrink:0;max-height:160px;overflow:auto;border-bottom:1px solid var(--line);background:#fafbfd;padding:8px}
+  .cp-sessions .s{padding:8px;border-radius:8px;cursor:pointer;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cp-sessions .s:hover,.cp-sessions .s.active{background:var(--pri-soft);color:var(--pri2)}
+  #chatPanel .msgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  #chatPanel .composer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);flex-shrink:0}
+  #chatPanel .composer textarea{resize:none;height:44px}
+  .cp-attach{display:flex;align-items:center;justify-content:center;padding:0;width:44px;flex-shrink:0;color:var(--muted)}
+  .cp-attach svg{width:18px;height:18px}
+  .cp-attach:hover{color:var(--pri2)}
+  /* ações rápidas (placeholder do chat) */
+  .cp-quick{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .cp-quick .qa-title{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);text-align:center}
+  .cp-quick .qa-btn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;justify-content:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--txt);font-size:12.5px;font-weight:600}
+  .cp-quick .qa-btn svg{width:15px;height:15px;color:var(--pri2);flex-shrink:0}
+  .cp-quick .qa-btn:hover{background:var(--pri-soft);border-color:var(--pri);color:var(--pri2)}
+  #chatPanel.hidden{display:none!important}
+  @media (max-width:768px){
+    #chatPanel{right:10px;bottom:10px;width:calc(100vw - 20px);height:calc(100vh - 90px)}
+    #chatFab{right:16px;bottom:16px}
+  }
+  .msg{max-width:85%;padding:11px 15px;border-radius:14px;white-space:pre-wrap;line-height:1.55;box-shadow:0 1px 2px rgba(16,24,40,.06)}
+  .msg.u{align-self:flex-end;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;border-bottom-right-radius:4px}
+  .msg.a{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
   .composer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
   .composer textarea{resize:none;height:44px}
   .muted{color:var(--muted)} .right-align{text-align:right}
   .pill-link{font-size:12px}
-  .empty{padding:40px;text-align:center;color:var(--muted)}
-  .badge{font-size:10px;padding:1px 6px;border-radius:6px;background:var(--chip);border:1px solid var(--line);color:var(--muted)}
+  .empty{padding:48px 40px;text-align:center;color:var(--muted);background:var(--card);border:1px dashed var(--line);border-radius:14px;font-size:13.5px}
+  .badge{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:7px;background:var(--chip);border:1px solid var(--line);color:var(--muted);margin:1px 0;line-height:1.6}
+  /* ===== board / kanban (Gerenciar editais) ===== */
+  .board-toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .board-toolbar .f{display:flex;flex-direction:column;gap:5px}
+  .board-toolbar .f label{font-size:11px;color:var(--muted);font-weight:600}
+  .board-toolbar .f.search{flex:1;min-width:200px}
+  .board{display:flex;gap:14px;overflow-x:auto;padding-bottom:14px;align-items:flex-start}
+  .b-col{flex:0 0 290px;background:#f8fafc;border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;max-height:calc(100vh - 250px)}
+  .b-col-head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#f8fafc;border-radius:14px 14px 0 0;z-index:1}
+  .b-col-head .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .b-col-head .t{font-weight:700;font-size:13px;color:var(--txt)}
+  .b-col-head .c{margin-left:auto;font-size:11px;font-weight:700;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 9px}
+  .b-col-body{padding:10px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;min-height:60px}
+  .b-col.drag-over{outline:2px dashed var(--pri);outline-offset:-4px}
+  .b-col.drag-over .b-col-body{background:var(--pri-soft)}
+  .b-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;padding:11px 12px;box-shadow:var(--shadow);cursor:grab;transition:transform .1s ease,box-shadow .15s ease}
+  .b-card:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,24,40,.1)}
+  .b-card.dragging{opacity:.5;cursor:grabbing}
+  .b-card.prio-alta{border-left-color:var(--no)}
+  .b-card.prio-media{border-left-color:var(--pri)}
+  .b-card.prio-baixa{border-left-color:#94a3b8}
+  .b-card .bc-top{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+  .b-card .bc-num{font-weight:700;font-size:13px;color:var(--txt)}
+  .b-card .bc-org{font-size:12px;color:var(--txt);line-height:1.35;margin-bottom:7px}
+  .b-card .bc-meta{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+  .b-card .bc-prazo{font-size:10.5px;font-weight:600;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+  .b-card .bc-prazo.late{color:var(--no)}
+  .prio-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.4px}
+  .prio-pill.alta{background:var(--nobg);color:#b91c1c;border:1px solid #fecaca}
+  .prio-pill.media{background:var(--pri-soft);color:var(--pri2);border:1px solid #ffe2c2}
+  .prio-pill.baixa{background:var(--chip);color:var(--muted);border:1px solid var(--line)}
+  .b-card .bc-resp{font-size:10.5px;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
 </style>
 </head>
 <body>
@@ -190,11 +288,11 @@
     <aside id="sidebar">
       <div id="sidebar-header"><span class="sb-title">Menu</span></div>
       <nav id="nav" class="sidebar-nav">
-        <button data-view="editais" class="active"><i data-lucide="file-text"></i><span>Editais</span></button>
+        <button data-view="editais" class="active"><i data-lucide="search"></i><span>Buscar editais</span></button>
+        <button data-view="gestao"><i data-lucide="kanban-square"></i><span>Gerenciar editais</span></button>
         <button data-view="catalogo" class="admin-only"><i data-lucide="package"></i><span>Catálogo</span></button>
         <button data-view="documentos" class="admin-only"><i data-lucide="folder-open"></i><span>Documentos</span></button>
         <button data-view="usuarios" class="admin-only"><i data-lucide="users"></i><span>Usuários</span></button>
-        <button data-view="chat"><i data-lucide="message-square"></i><span>Assistente IA</span></button>
       </nav>
       <div class="sidebar-footer">
         <div class="user-profile">
@@ -216,15 +314,19 @@
     <main id="content">
     <!-- EDITAIS -->
     <section id="view-editais">
+      <div class="page-head">
+        <div class="ph-icon"><i data-lucide="search"></i></div>
+        <h2>Buscar editais</h2>
+      </div>
+      <p class="page-sub">Acompanhe os editais captados, veja o score de aderência e decida participar ou recusar. Os aceitos vão para <strong>Gerenciar editais</strong>.</p>
       <div class="cards" id="statCards"></div>
       <div class="toolbar">
         <div class="f"><label>Status</label>
           <select id="fStatus">
             <option value="">Todos</option>
-            <option value="novo">Novos</option>
-            <option value="analisando">Analisando</option>
             <option value="sugerido_aceitar">Sugeridos p/ aceitar</option>
             <option value="sugerido_recusar">Sugeridos p/ recusar</option>
+            <option value="analisando">Para analisar</option>
             <option value="aceito">Aceitos</option>
             <option value="recusado">Recusados</option>
           </select>
@@ -233,6 +335,7 @@
         <div class="f search"><label>Busca (objeto / órgão / nº)</label><input id="fSearch" placeholder="Buscar..." /></div>
         <div class="f"><label>&nbsp;</label><button class="btn-pri" id="btnFilter">Filtrar</button></div>
         <div class="f"><label>&nbsp;</label><button class="btn-ghost" id="btnPull" title="Buscar novos editais na Effecti">↻ Buscar Effecti</button></div>
+        <div class="f admin-only"><label>&nbsp;</label><button class="btn-ghost" id="btnRematch" title="Reaplica o match do catálogo atual nos editais ainda não decididos">↻ Reprocessar análises</button></div>
       </div>
       <div id="editaisTable"></div>
       <div class="pager">
@@ -242,56 +345,85 @@
       </div>
     </section>
 
+    <!-- GESTAO (KANBAN) -->
+    <section id="view-gestao" class="hidden">
+      <div class="page-head">
+        <div class="ph-icon"><i data-lucide="kanban-square"></i></div>
+        <h2>Gerenciar editais</h2>
+        <button class="btn-ghost" id="btnBoardReload" style="margin-left:auto">↻ Atualizar</button>
+      </div>
+      <p class="page-sub">Acompanhe os editais <strong>aceitos</strong> ao longo do funil. Arraste os cards entre as etapas para atualizar o andamento.</p>
+      <div class="board-toolbar">
+        <div class="f"><label>UF</label><input id="bUf" maxlength="2" placeholder="SP" style="width:70px" /></div>
+        <div class="f search"><label>Busca (objeto / órgão / nº)</label><input id="bSearch" placeholder="Buscar..." /></div>
+        <div class="f"><label>&nbsp;</label><button class="btn-pri" id="btnBoardFilter">Filtrar</button></div>
+      </div>
+      <div id="boardEmpty" class="empty hidden">Nenhum edital aceito ainda. Aceite editais na aba <strong>Buscar editais</strong> para acompanhá-los aqui.</div>
+      <div class="board" id="board"></div>
+    </section>
+
     <!-- CATALOGO -->
     <section id="view-catalogo" class="hidden">
-      <div style="display:flex;align-items:center;margin-bottom:12px">
-        <h2 style="margin:0">Catálogo de produtos/serviços</h2>
+      <div class="page-head">
+        <div class="ph-icon"><i data-lucide="package"></i></div>
+        <h2>Catálogo de produtos/serviços</h2>
         <button class="btn-pri" id="btnAddCat" style="margin-left:auto">+ Adicionar</button>
       </div>
-      <p class="muted">O catálogo define o que a empresa oferece. O sistema cruza os itens dos editais com estas palavras-chave para decidir participação.</p>
+      <p class="page-sub">O catálogo define o que a empresa oferece. O sistema cruza os itens dos editais com estas palavras-chave para decidir participação.</p>
       <div id="catTable"></div>
     </section>
 
     <!-- DOCUMENTOS -->
     <section id="view-documentos" class="hidden">
-      <div style="display:flex;align-items:center;margin-bottom:12px">
-        <h2 style="margin:0">Documentos (RAG)</h2>
-        <button class="btn-pri" id="btnAddDoc" style="margin-left:auto">+ Adicionar documento</button>
+      <div class="page-head">
+        <div class="ph-icon"><i data-lucide="folder-open"></i></div>
+        <h2>Documentos (RAG)</h2>
+        <input type="file" id="docFileInput" style="display:none" />
+        <button class="btn-ghost" id="btnReindexAll" style="margin-left:auto">↻ Reprocessar pasta</button>
+        <button class="btn-ghost" id="btnUploadDoc">⬆ Enviar arquivo</button>
+        <button class="btn-pri" id="btnAddDoc">+ Adicionar texto</button>
       </div>
-      <p class="muted">Base de conhecimento do assistente. Todos os usuários autenticados consultam via IA (sem restrição por equipe).</p>
+      <p class="page-sub">Base de conhecimento do assistente. Todos os usuários autenticados consultam via IA (sem restrição por equipe).</p>
       <div id="docTable"></div>
     </section>
 
     <!-- USUARIOS -->
     <section id="view-usuarios" class="hidden">
-      <div style="display:flex;align-items:center;margin-bottom:12px">
-        <h2 style="margin:0">Usuários</h2>
+      <div class="page-head">
+        <div class="ph-icon"><i data-lucide="users"></i></div>
+        <h2>Usuários</h2>
         <button class="btn-pri" id="btnAddUser" style="margin-left:auto">+ Adicionar usuário</button>
       </div>
+      <p class="page-sub">Gerencie quem acessa o sistema e os respectivos perfis de permissão.</p>
       <div id="userTable"></div>
-    </section>
-
-    <!-- CHAT -->
-    <section id="view-chat" class="hidden">
-      <div class="chat-wrap">
-        <div class="sessions">
-          <button class="btn-pri" style="width:100%;margin-bottom:8px" id="newChat">+ Nova conversa</button>
-          <div id="sessionList"></div>
-        </div>
-        <div class="chat">
-          <div class="msgs" id="msgs"><div class="empty">Pergunte sobre os editais: "liste os editais novos", "esse edital faz sentido?", "recuse o 90020 por localidade".</div></div>
-          <div class="composer">
-            <textarea id="chatInput" placeholder="Escreva sua mensagem..."></textarea>
-            <button class="btn-pri" id="sendChat">Enviar</button>
-          </div>
-        </div>
-      </div>
     </section>
   </main>
   </div>
 </div>
 
+<!-- ASSISTENTE IA (widget flutuante) -->
+<button id="chatFab" title="Assistente IA"><i data-lucide="message-square"></i></button>
+<div id="chatPanel" class="hidden">
+  <header class="cp-head">
+    <i data-lucide="bot"></i>
+    <strong>Assistente IA</strong>
+    <span class="cp-ctx" id="chatCtx"></span>
+    <button class="cp-icon" id="chatHistoryBtn" title="Conversas"><i data-lucide="history"></i></button>
+    <button class="cp-icon" id="newChat" title="Nova conversa"><i data-lucide="plus"></i></button>
+    <button class="cp-icon" id="chatClose" title="Fechar"><i data-lucide="x"></i></button>
+  </header>
+  <div class="cp-sessions hidden" id="chatSessions"><div id="sessionList"></div></div>
+  <div class="msgs" id="msgs"></div>
+  <div class="composer">
+    <input type="file" id="chatFileInput" style="display:none" />
+    <button class="btn-ghost cp-attach" id="chatAttach" title="Anexar arquivo a esta conversa"><i data-lucide="paperclip"></i></button>
+    <textarea id="chatInput" placeholder="Escreva sua mensagem..."></textarea>
+    <button class="btn-pri" id="sendChat">Enviar</button>
+  </div>
+</div>
+
 <div id="modalRoot"></div>
+<div id="toastRoot"></div>
 
 <script>
 /* ============ CONFIG ============ */
@@ -331,15 +463,19 @@ let ME = null;           // { id, email, full_name, role }
 let isAdmin = false;
 let page = 0; const PAGE_SIZE = 25; let totalCount = 0;
 let curSession = null;
+let currentView = 'editais';
 
 const $ = s => document.querySelector(s);
 const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
 const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('pt-BR'); };
-const fmtMoney = v => v==null?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const fmtMoney = v => { const n=Number(v); return (!isFinite(n)||n<=0)?'—':n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); };
 // parse defensivo: webhooks n8n podem responder 200 com corpo vazio quando não há dados
 const safeJson = async r => { const t = await r.text(); if(!t || !t.trim()) return null; try{ return JSON.parse(t); }catch(_){ return null; } };
 const stripCtx = s => (s==null?'':String(s)).replace(/^\s*\[CONTEXTO[^\]]*\]\s*/i,'');
+// remove marcação HTML (ex.: <em>, <mark>) que vem dos portais de busca e normaliza espaços
+const stripTags = s => (s==null?'':String(s)).replace(/<\/?[^>]+>/g,'').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#0?39;|&apos;/gi,"'").replace(/\s+/g,' ').trim();
+const txt = s => esc(stripTags(s));
 const mdLite = s => esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
 
 /* ============ auth ============ */
@@ -377,13 +513,18 @@ sb.auth.getSession().then(({data})=> handleSession(data.session));
 
 /* ============ navigation ============ */
 function switchView(v){
+  currentView = v;
+  if(!$('#chatPanel').classList.contains('hidden')){
+    if($('#chatCtx')) $('#chatCtx').textContent = VIEW_LABELS[v]||'';
+    if($('#msgs').querySelector('.empty')) renderChatEmpty();
+  }
   document.querySelectorAll('#nav button').forEach(b=> b.classList.toggle('active', b.dataset.view===v));
-  ['editais','catalogo','documentos','usuarios','chat'].forEach(x=> $('#view-'+x).classList.toggle('hidden', x!==v));
+  ['editais','gestao','catalogo','documentos','usuarios'].forEach(x=> $('#view-'+x).classList.toggle('hidden', x!==v));
   if(v==='editais'){ loadStats(); loadEditais(); }
+  if(v==='gestao') loadBoard();
   if(v==='catalogo') loadCatalogo();
   if(v==='documentos') loadDocs();
   if(v==='usuarios') loadUsers();
-  if(v==='chat') loadSessions();
 }
 document.querySelectorAll('#nav button').forEach(b=> b.addEventListener('click', ()=>{ switchView(b.dataset.view); if(window.innerWidth<=768) mainGrid.classList.add('sidebar-closed'); }));
 
@@ -402,11 +543,26 @@ async function loadStats(){
   const { data, error } = await sb.rpc('nl_stats');
   if(error){ console.error(error); return; }
   const s = data || {};
+  // [rótulo, chave do contador, classe de cor, status p/ filtrar ('' = todos, null = não filtra)]
   const items = [
-    ['Novos','novos'],['Sugeridos aceitar','sugerido_aceitar'],['Sugeridos recusar','sugerido_recusar'],
-    ['Aceitos','aceitos'],['Recusados','recusados'],['Pend. sync Effecti','pendentes_sync'],['Total','total']
+    ['Sugeridos p/ aceitar','sugerido_aceitar','s-aceitar','sugerido_aceitar'],
+    ['Sugeridos p/ recusar','sugerido_recusar','s-recusar','sugerido_recusar'],
+    ['Para analisar','analisando','s-analisar','analisando'],
+    ['Aceitos','aceitos','s-aceitos','aceito'],
+    ['Recusados','recusados','s-recusados','recusado'],
+    ['Pend. sync Effecti','pendentes_sync','s-neutro',null],
+    ['Total','total','s-neutro','']
   ];
-  $('#statCards').innerHTML = items.map(([l,k])=>`<div class="stat"><div class="n">${s[k]??0}</div><div class="l">${l}</div></div>`).join('');
+  const cur = $('#fStatus').value;
+  $('#statCards').innerHTML = items.map(([l,k,cls,flt])=>{
+    const clickable = flt!==null;
+    const active = clickable && flt===cur;
+    return `<div class="stat ${cls}${clickable?' clickable':''}${active?' active':''}"${clickable?` data-filter="${flt}"`:''}>`
+      + `<div class="n">${s[k]??0}</div><div class="l">${l}</div></div>`;
+  }).join('');
+  $('#statCards').querySelectorAll('.stat.clickable').forEach(c=> c.addEventListener('click', ()=>{
+    $('#fStatus').value = c.dataset.filter; page = 0; loadStats(); loadEditais();
+  }));
 }
 async function loadEditais(){
   const params = {
@@ -445,8 +601,8 @@ function rowHtml(r){
        <button class="btn-no" data-act="reject" data-id="${r.id}" data-lic="${r.id_licitacao||''}">recusar</button>
      </div>`;
   return `<tr>
-    <td><strong>${esc(r.numero_edital||'—')}</strong><div class="modo">${esc(r.modalidade||'')}</div></td>
-    <td>${esc(r.orgao||'—')}<div class="modo">${esc((r.objeto||'').slice(0,70))}${(r.objeto||'').length>70?'…':''}</div></td>
+    <td><strong>${esc(r.numero_edital||'—')}</strong><div class="modo">${txt(r.modalidade)}</div></td>
+    <td>${txt(r.orgao)||'—'}<div class="modo">${txt((r.objeto||'').slice(0,140)).slice(0,70)}${stripTags(r.objeto).length>70?'…':''}</div></td>
     <td>${esc(r.uf||'—')}</td>
     <td>${fmtDate(r.data_abertura)}</td>
     <td><span class="modo">${esc(r.modo_participacao||'—')}</span><div class="badge">${r.itens_participa}/${r.itens_total} itens</div></td>
@@ -475,6 +631,17 @@ $('#btnPull').addEventListener('click', async ()=>{
   catch(e){ toast('Falha ao disparar busca: '+e.message); }
   setTimeout(()=>{ $('#btnPull').disabled=false; $('#btnPull').textContent='↻ Buscar Effecti'; loadStats(); loadEditais(); }, 4000);
 });
+$('#btnRematch').addEventListener('click', async ()=>{
+  if(!await confirmDialog('Reprocessar as análises dos editais com o catálogo atual? Editais já aceitos/recusados não são alterados.',{okText:'Reprocessar',danger:false})) return;
+  const btn=$('#btnRematch'); btn.disabled=true; const old=btn.textContent; btn.textContent='Reprocessando...';
+  try{
+    const { data, error } = await sb.rpc('nl_rematch_all', { p_only_pending:true });
+    if(error) throw error;
+    toast(`Reprocessados ${data?.reprocessados??0} editais.`,'success');
+    loadStats(); loadEditais();
+  }catch(e){ toast('Erro ao reprocessar: '+e.message,'error'); }
+  finally{ btn.disabled=false; btn.textContent=old; }
+});
 
 /* ---- decision ---- */
 async function decide(editalId, idLic, acao, motivo, motivoEffecti){
@@ -482,7 +649,7 @@ async function decide(editalId, idLic, acao, motivo, motivoEffecti){
     p_edital_id: editalId, p_acao: acao, p_motivo: motivo||null,
     p_motivo_effecti: motivoEffecti||null, p_origem:'humano'
   });
-  if(error){ toast('Erro ao registrar decisão: '+error.message); return; }
+  if(error){ toast('Erro ao registrar decisão: '+error.message,'error'); return; }
   const lic = idLic || (data && data.id_licitacao);
   if(lic){
     try{
@@ -510,9 +677,12 @@ function openRejectModal(editalId, idLic){
 /* ---- edital detail ---- */
 async function openEdital(id){
   const { data, error } = await sb.rpc('nl_get_edital', { p_edital_id:id });
-  if(error){ toast('Erro: '+error.message); return; }
+  if(error){ toast('Erro: '+error.message,'error'); return; }
   const e = data.edital, items = data.itens||[];
   const decided = e.status==='aceito'||e.status==='recusado';
+  // valor estimado: usa o do edital ou soma os itens (valor_total ou qtd × unitário)
+  let valorEst = Number(e.valor_total_estimado)||0;
+  if(valorEst<=0){ valorEst = items.reduce((s,it)=> s + (Number(it.valor_total)|| (Number(it.valor_unitario)||0)*(Number(it.quantidade)||0)), 0); }
   // group items by lote
   const lotes = {};
   items.forEach(it=>{ const k=it.lote||'—'; (lotes[k]=lotes[k]||[]).push(it); });
@@ -521,9 +691,9 @@ async function openEdital(id){
     const cov = lote==='—'?'':`<div class="badge" style="margin-bottom:6px">Lote ${esc(lote)} — ${all?'fornecível 100%':some?'parcial':'fora de escopo'}</div>`;
     const rows = its.map(it=>`<tr>
       <td>${esc(it.item_num??'')}</td>
-      <td>${esc((it.produto_licitado||'').slice(0,160))}</td>
+      <td>${txt((it.produto_licitado||'').slice(0,400)).slice(0,160)}</td>
       <td>${it.quantidade??''} ${esc(it.unidade||'')}</td>
-      <td>${it.catalogo_descricao?`<span class="tag sug_a">${esc(it.catalogo_descricao)}</span>`:'<span class="muted">—</span>'}</td>
+      <td>${it.catalogo_descricao?`<span class="tag sug_a">${txt(it.catalogo_descricao)}</span>`:'<span class="muted">—</span>'}</td>
       <td>${Math.round((it.match_score||0)*100)}%</td>
       <td>${it.participa?'<span class="tag sug_a">sim</span>':'<span class="tag sug_r">não</span>'}
           ${!decided?`<button class="btn-ghost" style="padding:2px 6px;font-size:11px" data-toggle="${it.id}" data-cur="${it.participa?1:0}">⇄</button>`:''}</td>
@@ -533,17 +703,17 @@ async function openEdital(id){
   openModal(`<header><strong>Edital ${esc(e.numero_edital||'')}</strong> ${statusTag(e.status)}<button class="close">×</button></header>
    <div class="body">
     <div class="kv">
-      <div><div class="k">Órgão</div><div class="v">${esc(e.orgao||'—')}</div></div>
+      <div><div class="k">Órgão</div><div class="v">${txt(e.orgao)||'—'}</div></div>
       <div><div class="k">UF</div><div class="v">${esc(e.uf||'—')}</div></div>
-      <div><div class="k">Modalidade</div><div class="v">${esc(e.modalidade||'—')}</div></div>
+      <div><div class="k">Modalidade</div><div class="v">${txt(e.modalidade)||'—'}</div></div>
       <div><div class="k">Data da licitação</div><div class="v">${fmtDate(e.data_abertura)}</div></div>
-      <div><div class="k">Valor estimado</div><div class="v">${fmtMoney(e.valor_total_estimado)}</div></div>
+      <div><div class="k">Valor estimado</div><div class="v">${fmtMoney(valorEst)}</div></div>
       <div><div class="k">Modo sugerido</div><div class="v">${esc(e.modo_participacao||'—')} (score ${Math.round((e.score_match||0)*100)}%)</div></div>
       <div><div class="k">Portal</div><div class="v">${esc(e.portal_nome||'—')}</div></div>
       <div><div class="k">Links</div><div class="v">${e.url_edital?`<a href="${esc(e.url_edital)}" target="_blank" rel="noopener">edital ↗</a>`:'—'}</div></div>
     </div>
-    <div style="margin-bottom:12px"><div class="k muted">Objeto</div>${esc(e.objeto||'—')}</div>
-    ${e.justificativa_ia?`<div class="badge" style="margin-bottom:12px">IA: ${esc(e.justificativa_ia)}</div>`:''}
+    <div style="margin-bottom:12px"><div class="k muted">Objeto</div>${txt(e.objeto)||'—'}</div>
+    ${e.justificativa_ia?`<div class="badge" style="margin-bottom:12px">IA: ${txt(e.justificativa_ia)}</div>`:''}
     <h3 style="margin:6px 0">Itens / lotes</h3>
     ${items.length?loteHtml:'<div class="empty">Sem itens.</div>'}
     ${!decided?`<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
@@ -560,6 +730,132 @@ async function openEdital(id){
   }
 }
 
+/* ============ GESTAO (KANBAN) ============ */
+const BOARD_STAGES = [
+  ['qualificado',         'Qualificado',            '#2563eb'],
+  ['documentacao',        'Documentação',           '#7c3aed'],
+  ['proposta_elaboracao', 'Proposta em elaboração', '#d97706'],
+  ['proposta_enviada',    'Proposta enviada',       '#0891b2'],
+  ['em_disputa',          'Em disputa / Sessão',    '#f7941e'],
+  ['ganhou',              'Ganhou',                 '#16a34a'],
+  ['perdeu',              'Perdeu',                 '#dc2626'],
+];
+const PRIO_LABEL = { alta:'Alta', media:'Média', baixa:'Baixa' };
+let boardRows = [];
+
+async function loadBoard(){
+  const params = {
+    p_uf: ($('#bUf').value||'').trim().toUpperCase() || null,
+    p_search: ($('#bSearch').value||'').trim() || null, p_stage: null
+  };
+  const { data, error } = await sb.rpc('nl_board_editais', params);
+  if(error){ $('#board').innerHTML = `<div class="empty">Erro: ${esc(error.message)}</div>`; return; }
+  boardRows = data || [];
+  $('#boardEmpty').classList.toggle('hidden', boardRows.length>0);
+  renderBoard();
+}
+function renderBoard(){
+  const byStage = {}; BOARD_STAGES.forEach(([k])=> byStage[k]=[]);
+  boardRows.forEach(r=>{ const k=byStage[r.kanban_stage]?r.kanban_stage:'qualificado'; byStage[k].push(r); });
+  $('#board').innerHTML = BOARD_STAGES.map(([key,label,color])=>{
+    const cards = byStage[key];
+    return `<div class="b-col" data-stage="${key}">
+      <div class="b-col-head"><span class="dot" style="background:${color}"></span><span class="t">${esc(label)}</span><span class="c">${cards.length}</span></div>
+      <div class="b-col-body" data-stage="${key}">${cards.map(boardCardHtml).join('')||'<div class="muted" style="font-size:11.5px;text-align:center;padding:10px 0">—</div>'}</div>
+    </div>`;
+  }).join('');
+  bindBoard();
+  if(window.lucide) lucide.createIcons();
+}
+function boardCardHtml(r){
+  const prio = r.gestao_prioridade||'media';
+  let prazoHtml='';
+  if(r.gestao_prazo){
+    const d=new Date(r.gestao_prazo+'T00:00:00'); const late=d < new Date(new Date().toDateString());
+    prazoHtml=`<span class="bc-prazo ${late?'late':''}"><i data-lucide="calendar"></i>${fmtDate(r.gestao_prazo)}</span>`;
+  }
+  const resp = r.gestao_responsavel?`<span class="bc-resp"><i data-lucide="user"></i>${esc(r.gestao_responsavel)}</span>`:'';
+  const val = Number(r.gestao_valor_proposta||r.valor_total_estimado)||0;
+  return `<div class="b-card prio-${prio}" draggable="true" data-id="${r.id}" data-stage="${r.kanban_stage}">
+    <div class="bc-top"><span class="bc-num">${esc(r.numero_edital||'—')}</span><span class="prio-pill ${prio}" style="margin-left:auto">${PRIO_LABEL[prio]}</span></div>
+    <div class="bc-org">${txt(r.orgao)||'—'}${r.uf?` · ${esc(r.uf)}`:''}</div>
+    <div class="bc-meta">${prazoHtml}${val>0?`<span class="badge">${fmtMoney(val)}</span>`:''}${resp}</div>
+  </div>`;
+}
+function bindBoard(){
+  let dragId=null;
+  document.querySelectorAll('#board .b-card').forEach(card=>{
+    card.addEventListener('click', ()=> openBoardCard(card.dataset.id));
+    card.addEventListener('dragstart', e=>{ dragId=card.dataset.id; card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    card.addEventListener('dragend', ()=>{ card.classList.remove('dragging'); document.querySelectorAll('#board .b-col').forEach(c=>c.classList.remove('drag-over')); });
+  });
+  document.querySelectorAll('#board .b-col').forEach(col=>{
+    col.addEventListener('dragover', e=>{ e.preventDefault(); col.classList.add('drag-over'); });
+    col.addEventListener('dragleave', ()=> col.classList.remove('drag-over'));
+    col.addEventListener('drop', e=>{ e.preventDefault(); col.classList.remove('drag-over');
+      const stage=col.dataset.stage; if(dragId) changeStage(dragId, stage); dragId=null; });
+  });
+}
+async function changeStage(id, stage){
+  const row = boardRows.find(r=> r.id===id);
+  if(!row || row.kanban_stage===stage) return;
+  const prev = row.kanban_stage; row.kanban_stage = stage; renderBoard();
+  const { error } = await sb.rpc('nl_update_gestao', { p_edital_id:id, p_stage:stage });
+  if(error){ row.kanban_stage = prev; renderBoard(); toast('Erro ao mover edital: '+error.message,'error'); }
+}
+async function openBoardCard(id){
+  const { data, error } = await sb.rpc('nl_get_edital', { p_edital_id:id });
+  if(error){ toast('Erro: '+error.message,'error'); return; }
+  const e = data.edital;
+  const stageOpts = BOARD_STAGES.map(([k,l])=>`<option value="${k}" ${e.kanban_stage===k?'selected':''}>${esc(l)}</option>`).join('');
+  const prioOpts = ['alta','media','baixa'].map(p=>`<option value="${p}" ${(e.gestao_prioridade||'media')===p?'selected':''}>${PRIO_LABEL[p]}</option>`).join('');
+  openModal(`<header><strong>Gerir edital ${esc(e.numero_edital||'')}</strong><button class="close">×</button></header>
+   <div class="body">
+    <div class="kv">
+      <div><div class="k">Órgão</div><div class="v">${txt(e.orgao)||'—'}</div></div>
+      <div><div class="k">UF</div><div class="v">${esc(e.uf||'—')}</div></div>
+      <div><div class="k">Data da licitação</div><div class="v">${fmtDate(e.data_abertura)}</div></div>
+      <div><div class="k">Links</div><div class="v">${e.url_edital?`<a href="${esc(e.url_edital)}" target="_blank" rel="noopener">edital ↗</a>`:'—'}</div></div>
+    </div>
+    ${e.objeto?`<div style="margin-bottom:14px"><div class="k muted">Objeto</div>${txt((e.objeto||'').slice(0,500))}</div>`:''}
+    <h3 style="margin:6px 0 10px">Acompanhamento</h3>
+    <div class="kv" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div style="background:transparent;border:none;padding:0"><label class="muted">Etapa</label><select id="gStage">${stageOpts}</select></div>
+      <div style="background:transparent;border:none;padding:0"><label class="muted">Prioridade</label><select id="gPrio">${prioOpts}</select></div>
+      <div style="background:transparent;border:none;padding:0"><label class="muted">Responsável</label><input id="gResp" value="${esc(e.gestao_responsavel||'')}" placeholder="Nome" /></div>
+      <div style="background:transparent;border:none;padding:0"><label class="muted">Prazo da proposta</label><input id="gPrazo" type="date" value="${esc(e.gestao_prazo||'')}" /></div>
+      <div style="background:transparent;border:none;padding:0"><label class="muted">Valor da proposta (R$)</label><input id="gValor" type="number" step="0.01" min="0" value="${e.gestao_valor_proposta??''}" placeholder="0,00" /></div>
+    </div>
+    <label class="muted" style="display:block;margin-top:6px">Observações</label>
+    <textarea id="gObs" rows="3" placeholder="Anotações de andamento...">${esc(e.gestao_observacoes||'')}</textarea>
+    <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:16px">
+      <button class="btn-ghost" id="gDetail">Ver itens / detalhe</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-ghost" id="gCancel">Cancelar</button>
+        <button class="btn-pri" id="gSave">Salvar</button>
+      </div>
+    </div>
+   </div>`);
+  if(window.lucide) lucide.createIcons();
+  $('#gCancel').onclick = closeModal;
+  $('#gDetail').onclick = ()=> openEdital(id);
+  $('#gSave').onclick = async ()=>{
+    const btn=$('#gSave'); btn.disabled=true;
+    const { error } = await sb.rpc('nl_update_gestao', {
+      p_edital_id:id, p_stage:$('#gStage').value, p_prioridade:$('#gPrio').value,
+      p_responsavel:$('#gResp').value.trim()||null, p_prazo:$('#gPrazo').value||null,
+      p_valor_proposta:$('#gValor').value!==''?Number($('#gValor').value):null,
+      p_observacoes:$('#gObs').value.trim()||null
+    });
+    btn.disabled=false;
+    if(error){ toast('Erro ao salvar: '+error.message,'error'); return; }
+    closeModal(); toast('Edital atualizado.','success'); loadBoard();
+  };
+}
+$('#btnBoardReload').addEventListener('click', loadBoard);
+$('#btnBoardFilter').addEventListener('click', loadBoard);
+$('#bSearch').addEventListener('keydown', e=>{ if(e.key==='Enter') loadBoard(); });
+
 /* ============ CATALOGO ============ */
 async function loadCatalogo(){
   const { data, error } = await sb.rpc('nl_list_catalogo', { p_only_active:false });
@@ -572,7 +868,7 @@ async function loadCatalogo(){
     <td class="row-actions"><button class="btn-ghost" data-edit='${esc(JSON.stringify(c))}'>editar</button><button class="btn-no" data-del="${c.id}">excluir</button></td>
   </tr>`).join('');
   $('#catTable').innerHTML = rows?`<table><thead><tr><th>Linha</th><th>Descrição</th><th>Tipo</th><th>Palavras-chave</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Catálogo vazio.</div>';
-  document.querySelectorAll('#catTable [data-del]').forEach(b=> b.onclick=async()=>{ if(confirm('Excluir item do catálogo?')){ await sb.rpc('nl_admin_delete_catalogo',{p_id:b.dataset.del}); loadCatalogo(); }});
+  document.querySelectorAll('#catTable [data-del]').forEach(b=> b.onclick=async()=>{ if(await confirmDialog('Excluir este item do catálogo?',{okText:'Excluir'})){ await sb.rpc('nl_admin_delete_catalogo',{p_id:b.dataset.del}); toast('Item excluído.','success'); loadCatalogo(); }});
   document.querySelectorAll('#catTable [data-edit]').forEach(b=> b.onclick=()=> openCatModal(JSON.parse(b.dataset.edit)));
 }
 $('#btnAddCat').addEventListener('click', ()=> openCatModal(null));
@@ -601,23 +897,53 @@ function openCatModal(c){
       p_finalidade:$('#cF').value.trim(), p_palavras_chave:split($('#cK').value), p_sinonimos:split($('#cS').value),
       p_marca:null, p_ncm:null, p_registro_anvisa:null, p_ativo:$('#cA').value==='true'
     });
-    if(error){ toast('Erro: '+error.message); return; }
+    if(error){ toast('Erro: '+error.message,'error'); return; }
     closeModal(); loadCatalogo();
   };
 }
 
 /* ============ DOCUMENTOS (RAG) ============ */
+let docsBusy=false;
+function setDocsBusy(busy){
+  docsBusy=busy;
+  ['#btnReindexAll','#btnUploadDoc','#btnAddDoc'].forEach(s=>{ const b=$(s); if(b) b.disabled=busy; });
+  document.querySelectorAll('#docTable [data-reindex],#docTable [data-del]').forEach(b=> b.disabled=busy);
+}
 async function loadDocs(){
+  docsBusy=false;
   try{
     const r = await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-docs`); const j = await safeJson(r);
     const docs = (j && (j.docs || (Array.isArray(j)?j:null))) || [];
     const rows=docs.map(d=>`<tr><td><strong>${esc(d.title||d.file_id)}</strong><div class="modo">${esc(d.file_id)}</div></td>
       <td>${esc(d.code||'—')}</td><td>${d.chunk_count||0}</td><td>${fmtDate(d.last_indexed_at)}</td>
-      <td><button class="btn-no" data-del="${esc(d.file_id)}">excluir</button></td></tr>`).join('');
+      <td class="row-actions"><button class="btn-ghost" data-reindex="${esc(d.file_id)}">reprocessar</button>
+      <button class="btn-no" data-del="${esc(d.file_id)}">excluir</button></td></tr>`).join('');
     $('#docTable').innerHTML = rows?`<table><thead><tr><th>Documento</th><th>Código</th><th>Chunks</th><th>Indexado</th><th></th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Nenhum documento.</div>';
-    document.querySelectorAll('#docTable [data-del]').forEach(b=> b.onclick=async()=>{ if(confirm('Excluir documento?')){ await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-doc-delete`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file_id:b.dataset.del})}); loadDocs(); }});
+    document.querySelectorAll('#docTable [data-del]').forEach(b=> b.onclick=async()=>{ if(await confirmDialog('Excluir este documento do RAG?',{okText:'Excluir'})){ setDocsBusy(true); try{ await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-doc-delete`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file_id:b.dataset.del})}); toast('Documento excluído.','success'); }catch(e){ toast('Erro: '+e.message,'error'); } setTimeout(loadDocs,800); }});
+    document.querySelectorAll('#docTable [data-reindex]').forEach(b=> b.onclick=async()=>{ if(docsBusy) return; setDocsBusy(true); b.textContent='processando…'; try{ await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-reindex`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file_id:b.dataset.reindex})}); toast('Reprocessamento disparado.','success'); setTimeout(loadDocs,2000);}catch(e){ toast('Erro: '+e.message,'error'); setDocsBusy(false); b.textContent='reprocessar'; }});
   }catch(e){ $('#docTable').innerHTML=`<div class="empty">RAG indisponível: ${esc(e.message)}</div>`; }
 }
+/* enviar arquivo real (upload unitário; substitui se mesmo nome) */
+$('#btnUploadDoc').addEventListener('click', ()=> $('#docFileInput').click());
+$('#docFileInput').addEventListener('change', async (e)=>{
+  const file=e.target.files[0]; e.target.value=''; if(!file) return;
+  if(docsBusy) return;
+  setDocsBusy(true);
+  toast(`Enviando "${file.name}"…`,'info');
+  try{
+    const fd=new FormData(); fd.append('data', file, file.name);
+    const r=await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-upload`,{method:'POST',body:fd});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    toast('Arquivo enviado e indexado.','success'); setTimeout(loadDocs,1500);
+  }catch(err){ toast('Erro no upload: '+err.message,'error'); setDocsBusy(false); }
+});
+/* reprocessar a pasta inteira do Drive */
+$('#btnReindexAll').addEventListener('click', async ()=>{
+  if(docsBusy) return;
+  if(!await confirmDialog('Reprocessar TODA a pasta do Google Drive? Isso pode levar alguns minutos.',{okText:'Reprocessar',danger:false})) return;
+  setDocsBusy(true);
+  try{ await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-reindex`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); toast('Reprocessamento da pasta disparado.','success'); setTimeout(loadDocs,2500);}catch(e){ toast('Erro: '+e.message,'error'); setDocsBusy(false); }
+});
 $('#btnAddDoc').addEventListener('click', ()=>{
   openModal(`<header><strong>Adicionar documento</strong><button class="close">×</button></header><div class="body">
     <label class="muted">ID/código do arquivo</label><input id="dId" placeholder="MANUAL-COAG-01" />
@@ -633,7 +959,7 @@ $('#btnAddDoc').addEventListener('click', ()=>{
     try{ await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-upsert`,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({file_id,title:$('#dTitle').value.trim()||file_id,code:file_id,content_text:$('#dText').value})});
       closeModal(); loadDocs(); toast('Documento enviado para indexação.');
-    }catch(e){ toast('Erro: '+e.message); $('#dSave').disabled=false; }
+    }catch(e){ toast('Erro: '+e.message,'error'); $('#dSave').disabled=false; }
   };
 });
 
@@ -649,7 +975,7 @@ async function loadUsers(){
       ${u.user_id!==ME.id?`<button class="btn-no" data-del="${u.user_id}">excluir</button>`:''}
     </td></tr>`).join('');
   $('#userTable').innerHTML=`<table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Criado</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
-  document.querySelectorAll('#userTable [data-del]').forEach(b=> b.onclick=async()=>{ if(confirm('Excluir usuário?')){ const {error}=await sb.rpc('nl_admin_delete_user',{p_user_id:b.dataset.del}); if(error)toast(error.message); loadUsers(); }});
+  document.querySelectorAll('#userTable [data-del]').forEach(b=> b.onclick=async()=>{ if(await confirmDialog('Excluir este usuário?',{okText:'Excluir'})){ const {error}=await sb.rpc('nl_admin_delete_user',{p_user_id:b.dataset.del}); if(error){toast(error.message,'error');} else {toast('Usuário excluído.','success');} loadUsers(); }});
   document.querySelectorAll('#userTable [data-edit]').forEach(b=> b.onclick=()=> openUserEdit(JSON.parse(b.dataset.edit)));
 }
 function openUserEdit(u){
@@ -660,7 +986,7 @@ function openUserEdit(u){
     <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end"><button class="btn-ghost" id="uCancel">Cancelar</button><button class="btn-pri" id="uSave">Salvar</button></div>
   </div>`);
   $('#uCancel').onclick=closeModal;
-  $('#uSave').onclick=async()=>{ const {error}=await sb.rpc('nl_admin_update_user',{p_user_id:u.user_id,p_full_name:$('#uName').value.trim(),p_role:$('#uRole').value}); if(error){toast(error.message);return;} closeModal(); loadUsers(); };
+  $('#uSave').onclick=async()=>{ const {error}=await sb.rpc('nl_admin_update_user',{p_user_id:u.user_id,p_full_name:$('#uName').value.trim(),p_role:$('#uRole').value}); if(error){toast(error.message,'error');return;} closeModal(); loadUsers(); };
 }
 $('#btnAddUser').addEventListener('click', ()=>{
   openModal(`<header><strong>Adicionar usuário</strong><button class="close">×</button></header><div class="body">
@@ -679,7 +1005,7 @@ $('#btnAddUser').addEventListener('click', ()=>{
     // cliente temporário para não derrubar a sessão do admin
     const tmp = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {auth:{storageKey:'nldiag-tmp',persistSession:false}});
     const { data, error } = await tmp.auth.signUp({ email, password:pass, options:{ data:{ full_name:name, company_name:COMPANY, role } } });
-    if(error){ toast('Erro: '+error.message); $('#nSave').disabled=false; return; }
+    if(error){ toast('Erro: '+error.message,'error'); $('#nSave').disabled=false; return; }
     const uid = data.user?.id;
     if(uid){ await sb.rpc('nl_admin_confirm_user',{p_user_id:uid}); await sb.rpc('nl_admin_update_user',{p_user_id:uid,p_full_name:name,p_role:role}); }
     await tmp.auth.signOut();
@@ -687,18 +1013,73 @@ $('#btnAddUser').addEventListener('click', ()=>{
   };
 });
 
-/* ============ CHAT ============ */
+/* ============ CHAT (widget flutuante) ============ */
+const VIEW_LABELS = { editais:'Buscar editais', gestao:'Gerenciar editais', catalogo:'Catálogo', documentos:'Documentos', usuarios:'Usuários' };
+function pageContextLabel(){ return VIEW_LABELS[currentView] || 'Buscar editais'; }
+// ações rápidas por página (texto enviado ao agente quando clicado)
+const QUICK_ACTIONS = {
+  editais: [
+    ['list','Listar editais novos','Liste os editais novos para eu analisar.'],
+    ['sparkles','Sugeridos para aceitar','Quais editais estão sugeridos para aceitar e por quê?'],
+    ['help-circle','Esse edital faz sentido?','Me ajude a avaliar se vale a pena participar dos editais em aberto.'],
+  ],
+  gestao: [
+    ['gavel','O que está em disputa?','Quais editais aceitos estão na etapa "em disputa"?'],
+    ['alarm-clock','O que está atrasado?','Quais editais aceitos estão com prazo de proposta vencido ou próximo?'],
+    ['bar-chart-3','Resumo do funil','Me dê um resumo de quantos editais estão em cada etapa do funil.'],
+  ],
+  catalogo: [
+    ['package','Ver catálogo','Liste os produtos e serviços ativos do catálogo.'],
+  ],
+  documentos: [
+    ['folder-open','Sobre os documentos','O que há na base de conhecimento que posso consultar?'],
+  ],
+  usuarios: [
+    ['list','Editais novos','Liste os editais novos para eu analisar.'],
+  ],
+};
+function chatEmptyHtml(){
+  const acts = QUICK_ACTIONS[currentView] || QUICK_ACTIONS.editais;
+  const intro = currentView==='gestao'
+    ? 'Acompanhe os editais aceitos. Peça para mover de etapa, definir responsável ou prazo.'
+    : 'Pergunte sobre os editais, peça análises ou registre decisões.';
+  const btns = acts.map((a,i)=>`<button class="qa-btn" data-qa="${i}"><i data-lucide="${a[0]}"></i><span>${esc(a[1])}</span></button>`).join('');
+  return `<div class="empty" style="padding:24px 20px">${esc(intro)}
+    <div class="cp-quick"><div class="qa-title">Ações rápidas · ${esc(pageContextLabel())}</div>${btns}</div></div>`;
+}
+function renderChatEmpty(){
+  $('#msgs').innerHTML = chatEmptyHtml();
+  if(window.lucide) lucide.createIcons();
+  const acts = QUICK_ACTIONS[currentView] || QUICK_ACTIONS.editais;
+  document.querySelectorAll('#msgs .qa-btn').forEach(b=> b.onclick=()=>{
+    const a = acts[Number(b.dataset.qa)]; if(!a) return;
+    $('#chatInput').value = a[2]; sendChat();
+  });
+}
+function openChat(){
+  $('#chatPanel').classList.remove('hidden'); $('#chatFab').classList.add('hidden');
+  if($('#chatCtx')) $('#chatCtx').textContent = pageContextLabel();
+  if($('#msgs').querySelector('.empty')) renderChatEmpty();
+  if(window.lucide) lucide.createIcons();
+  if(!curSession) loadSessions();
+  setTimeout(()=>{ const i=$('#chatInput'); if(i) i.focus(); $('#msgs').scrollTop=$('#msgs').scrollHeight; }, 50);
+}
+function closeChat(){ $('#chatPanel').classList.add('hidden'); $('#chatFab').classList.remove('hidden'); }
+$('#chatFab').addEventListener('click', openChat);
+$('#chatClose').addEventListener('click', closeChat);
+$('#chatHistoryBtn').addEventListener('click', ()=>{ const s=$('#chatSessions'); s.classList.toggle('hidden'); if(!s.classList.contains('hidden')) loadSessions(); });
+
 async function loadSessions(){
   if(!ME) return;
   try{
     const r=await fetch(`${CONFIG.N8N_BASE}/nldiag-sessions?userId=${encodeURIComponent(ME.id)}`); const arr=await safeJson(r);
     const list=Array.isArray(arr)?arr:[];
     $('#sessionList').innerHTML = list.map(s=>`<div class="s${s.session_id===curSession?' active':''}" data-s="${esc(s.session_id)}">${esc((stripCtx(s.titulo)||'Conversa').slice(0,40))}</div>`).join('') || '<div class="muted" style="padding:8px">Sem conversas</div>';
-    document.querySelectorAll('#sessionList .s').forEach(d=> d.onclick=()=> openSession(d.dataset.s));
+    document.querySelectorAll('#sessionList .s').forEach(d=> d.onclick=()=>{ openSession(d.dataset.s); $('#chatSessions').classList.add('hidden'); });
   }catch(e){ $('#sessionList').innerHTML=`<div class="muted" style="padding:8px">Indisponível</div>`; }
 }
 function newSessionId(){ return 'sess-'+Date.now()+'-'+Math.random().toString(36).slice(2,8); }
-$('#newChat').addEventListener('click', ()=>{ curSession=newSessionId(); $('#msgs').innerHTML='<div class="empty">Nova conversa. Pergunte sobre os editais.</div>'; loadSessions(); });
+$('#newChat').addEventListener('click', ()=>{ curSession=newSessionId(); renderChatEmpty(); $('#chatSessions').classList.add('hidden'); loadSessions(); });
 async function openSession(id){
   curSession=id; loadSessions();
   try{
@@ -712,26 +1093,79 @@ async function openSession(id){
     $('#msgs').scrollTop=$('#msgs').scrollHeight;
   }catch(e){ /* noop */ }
 }
+// recarrega a tela atual para o usuário VER as ações que o agente executou
+function refreshCurrentView(){
+  if(currentView==='editais'){ loadStats(); loadEditais(); }
+  else if(currentView==='gestao'){ loadBoard(); }
+}
 async function sendChat(){
   const txt=$('#chatInput').value.trim(); if(!txt) return;
   if(!curSession) curSession=newSessionId();
   if($('#msgs').querySelector('.empty')) $('#msgs').innerHTML='';
   $('#msgs').appendChild(el('div','msg u',esc(txt))); $('#chatInput').value=''; $('#msgs').scrollTop=$('#msgs').scrollHeight;
   const thinking=el('div','msg a','…'); $('#msgs').appendChild(thinking); $('#msgs').scrollTop=$('#msgs').scrollHeight;
+  // injeta a página atual para o agente considerar o contexto (não é exibido ao usuário)
+  const message=`[PÁGINA: ${pageContextLabel()}] ${txt}`;
   try{
     const r=await fetch(`${CONFIG.N8N_BASE}/nldiag-AgentRag`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({sessionId:curSession,userId:ME.id,userName:ME.full_name,message:txt})});
+      body:JSON.stringify({sessionId:curSession,userId:ME.id,userName:ME.full_name,message})});
     const j=await safeJson(r); thinking.innerHTML=mdLite((j&&j.output)||'(sem resposta)');
+    refreshCurrentView();
   }catch(e){ thinking.innerHTML='Erro: '+esc(e.message); }
   $('#msgs').scrollTop=$('#msgs').scrollHeight; loadSessions();
 }
 $('#sendChat').addEventListener('click', sendChat);
 $('#chatInput').addEventListener('keydown', e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendChat(); }});
+/* anexar arquivo À CONVERSA atual (indexado só nesta sessão) */
+$('#chatAttach').addEventListener('click', ()=>{ if(!curSession) curSession=newSessionId(); $('#chatFileInput').click(); });
+$('#chatFileInput').addEventListener('change', async (e)=>{
+  const file=e.target.files[0]; e.target.value=''; if(!file) return;
+  if(!curSession) curSession=newSessionId();
+  if($('#msgs').querySelector('.empty')) $('#msgs').innerHTML='';
+  const note=el('div','msg a',`📎 Indexando "${esc(file.name)}" nesta conversa…`); $('#msgs').appendChild(note); $('#msgs').scrollTop=$('#msgs').scrollHeight;
+  try{
+    const fd=new FormData(); fd.append('data', file, file.name); fd.append('session_id', curSession);
+    const r=await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-upload?sessionId=${encodeURIComponent(curSession)}`,{method:'POST',body:fd});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    note.innerHTML=`📎 Arquivo "${esc(file.name)}" indexado nesta conversa. Já posso responder sobre ele.`;
+  }catch(err){ note.innerHTML='Erro ao anexar: '+esc(err.message); }
+  $('#msgs').scrollTop=$('#msgs').scrollHeight;
+});
 
 /* ============ modal + toast ============ */
 function openModal(html){ const r=$('#modalRoot'); r.innerHTML=`<div class="modal-bg"><div class="modal">${html}</div></div>`; r.querySelector('.modal-bg').onclick=e=>{if(e.target.classList.contains('modal-bg'))closeModal();}; const c=r.querySelector('.close'); if(c)c.onclick=closeModal; }
 function closeModal(){ $('#modalRoot').innerHTML=''; }
-function toast(msg){ const t=el('div','',esc(msg)); t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid var(--line);padding:12px 18px;border-radius:10px;z-index:100;box-shadow:0 6px 20px rgba(0,0,0,.4)'; document.body.appendChild(t); setTimeout(()=>t.remove(),3500); }
+function toast(msg, type){
+  type = type || 'info';
+  const icon = type==='success' ? '✓' : type==='error' ? '!' : 'i';
+  const t = el('div','toast '+type, `<span class="ti">${icon}</span><span class="tx">${esc(msg)}</span>`);
+  $('#toastRoot').appendChild(t);
+  requestAnimationFrame(()=> t.classList.add('show'));
+  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),300); }, 3500);
+}
+/* diálogo de confirmação in-app (substitui confirm() do navegador) */
+function confirmDialog(message, opts){
+  opts = opts || {};
+  const okText = opts.okText || 'Confirmar';
+  const cancelText = opts.cancelText || 'Cancelar';
+  const danger = opts.danger !== false; // padrão: ação destrutiva
+  return new Promise(resolve=>{
+    openModal(`<div class="body">
+      <div class="confirm-ico ${danger?'danger':'ask'}">${danger?'⚠':'?'}</div>
+      <div class="confirm-msg">${esc(message)}</div>
+      <div class="confirm-actions">
+        <button class="btn-ghost" id="cfNo">${esc(cancelText)}</button>
+        <button class="${danger?'btn-no':'btn-pri'}" id="cfYes">${esc(okText)}</button>
+      </div>
+    </div>`);
+    $('#modalRoot .modal').classList.add('confirm');
+    let done=false;
+    const finish=v=>{ if(done)return; done=true; closeModal(); resolve(v); };
+    $('#cfYes').onclick=()=>finish(true);
+    $('#cfNo').onclick=()=>finish(false);
+    const bg=$('#modalRoot .modal-bg'); if(bg) bg.onclick=e=>{ if(e.target.classList.contains('modal-bg')) finish(false); };
+  });
+}
 </script>
 </body>
 </html>

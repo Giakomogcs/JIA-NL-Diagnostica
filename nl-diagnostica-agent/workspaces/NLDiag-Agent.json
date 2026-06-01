@@ -1,5 +1,4 @@
 {
-  "name": "NLDiag-Agent",
   "nodes": [
     {
       "parameters": {
@@ -8,46 +7,52 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "d1000000-0000-4000-8000-000000000001",
+      "id": "07c69c76-3d66-464a-b270-9fa843b7199e",
       "name": "Webhook: AgentRag",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-420, 0],
+      "position": [1888, 832],
       "webhookId": "nldiag-agent"
     },
     {
       "parameters": {
         "jsCode": "// Envelope: { sessionId, userId, userName?, message? | chatInput? }\n// Antepõe [CONTEXTO DO USUÁRIO ...]; o trigger da tabela nl_chat_message lê\n// esse bloco para popular user_id.\nconst body = $input.first().json.body ?? $input.first().json;\nconst sessionId = (body.sessionId || '').toString().trim();\nconst userId    = (body.userId    || '').toString().trim();\nconst userName  = (body.userName  || '').toString().trim();\nlet rawMsg      = (body.message   || body.chatInput || '').toString();\nrawMsg = rawMsg.replace(/^\\s*\\[CONTEXTO[^\\]]*\\]\\s*/i, '').trim();\nif (!sessionId) throw new Error('sessionId is required');\nif (!userId)    throw new Error('userId is required');\nconst header = `[CONTEXTO DO USUÁRIO: nome=\"${userName}\" ID=\"${userId}\"]`;\nconst chatInput = `${header}\\n\\n${rawMsg}`;\nreturn { sessionId, userId, userName, chatInput, original_message: rawMsg };"
       },
-      "id": "d1000000-0000-4000-8000-000000000002",
+      "id": "f62580bc-5f17-4feb-8c44-56eefb3bbec0",
       "name": "Prepare Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-200, 0]
+      "position": [2112, 832]
     },
     {
       "parameters": {
         "promptType": "define",
         "text": "={{ $('Prepare Input').item.json.chatInput }}",
         "options": {
-          "systemMessage": "Você é o **Copiloto de Licitações da NL Diagnostica** (uso interno), empresa de produtos e serviços para diagnóstico in vitro — linha principal **Hemostasia**. Você ajuda a equipe a triar **editais de licitação** recebidos (via Effecti, Licita Já, ComprasNet), decidir se vale participar, e registrar aceite/recusa — aprendendo com decisões passadas.\n\n## SEU OBJETIVO\nPara cada edital: (1) entender o objeto e os itens; (2) cruzar com o **catálogo** de produtos/serviços que a NL Diagnostica realmente oferece e a **finalidade de uso**; (3) dizer se faz sentido participar, e **como** — por **produto** (quais itens a empresa consegue fornecer) ou por **lote/edital inteiro** (se consegue fornecer tudo do lote); (4) recomendar aceitar ou recusar com justificativa rastreável.\n\n## FERRAMENTAS\n1. `stats()` — contadores do painel (novos, sugeridos, aceitos, recusados, pendentes de sync). Use para visão geral.\n2. `list_editais({status?, uf?, search?, limit?, offset?})` — lista editais do painel já com score_match, modo_participacao e sugestão. **Sempre a primeira chamada** ao analisar a fila. Processe em LOTES (limit) para não sobrecarregar. status: novo|analisando|sugerido_aceitar|sugerido_recusar|aceito|recusado.\n3. `get_edital({edital_id})` — cabeçalho + itens detalhados (com match por item: catalogo_id, match_score, participa, lote). Use para analisar um edital específico antes de decidir.\n4. `catalogo()` — catálogo de produtos/serviços ativos (descrição, finalidade, palavras-chave). Use para justificar match/no-match.\n5. `learning_signals()` — agregados de decisões passadas (motivos de recusa, UFs aceitas/recusadas, exemplos recentes). **Consulte antes de recomendar** para não repetir erros e seguir o padrão histórico.\n6. `decidir_edital({edital_id, acao, motivo?, motivo_effecti?})` — registra a decisão (acao: aceitar|recusar). Use motivo_effecti SOMENTE em recusa, escolhendo um de: FALTA_CAPACIDADE_TECNICA, LOCALIDADE_ENTREGA, VALOR_ESTIMADO_BAIXO, DOCUMENTACAO_INSUFICIENTE, PRAZO_ENTREGA_CURTO, OUTROS. **Só decida quando o usuário pedir explicitamente** ou confirmar — caso contrário apenas recomende.\n7. `search_knowledge_base(query)` — RAG nos documentos internos liberados (manuais, especificações, regras). Use para detalhes técnicos/finalidade de uso.\n\n## COMO DECIDIR O MODO DE PARTICIPAÇÃO\n- Use `get_edital` e olhe item a item:\n  - **Por produto**: liste exatamente quais itens a empresa consegue fornecer (participa=true) e quais não.\n  - **Por lote**: um lote só é fornecível se **TODOS** os itens do lote casarem com o catálogo. Diga quais lotes são 100% fornecíveis.\n  - **Edital inteiro (total)**: só se todos os itens forem fornecíveis.\n- Sempre cite o `score_match` e o `modo_participacao` do edital, e explique com base no catálogo + finalidade de uso.\n\n## PRINCÍPIOS\n1. **Nunca invente** que a empresa fornece algo. Baseie-se no catálogo e no RAG. Se não casar, diga que não faz sentido participar (ou que precisa cadastrar o produto no catálogo).\n2. **Aprenda com o histórico** (`learning_signals`): se editais semelhantes foram recusados por LOCALIDADE_ENTREGA ou VALOR_ESTIMADO_BAIXO, sinalize.\n3. **Mostre sempre os dados-chave** de cada edital: número (processo), órgão, estado (UF), data da licitação, link do edital e portal.\n4. **Processe em lotes.** Se houver muitos editais, analise `limit` por vez e ofereça continuar (offset).\n5. **Sem JSON cru** na resposta — extraia os campos relevantes em tabela markdown enxuta.\n6. **Saudação curta não chama tool.** Em 'oi/bom dia', explique o que faz e ofereça listar os editais novos.\n\n## FORMATO DE RESPOSTA (análise de fila)\n```\n## 📋 Editais — [N] novos analisados\n\n| nº edital | órgão | UF | data licitação | modo | score | sugestão | link |\n| :- | :- | :- | :- | :- | :- | :- | :- |\n| 90012/2026 | SES-SP | SP | 12/06/2026 | produto | 0.6 | aceitar | [edital](url) |\n\n## 🔎 Detalhe / justificativa\n- **90012/2026** — itens 1,3 (reagente TP, fibrinogênio) casam com catálogo Hemostasia → participar por produto. Item 2 (bioquímica) fora de escopo.\n\n## ✅ Recomendação\n- Aceitar 90012/2026 (por produto: itens 1 e 3). Recusar 90020/2026 (LOCALIDADE_ENTREGA — histórico).\n```\n\n## TOM\nTécnico, objetivo, **pt-BR**. Markdown enxuto. Quando não souber, diga e sugira cadastrar no catálogo ou consultar a equipe comercial."
+          "systemMessage": "Você é o **Copiloto de Licitações da NL Diagnóstica** (uso interno), empresa de produtos e serviços para diagnóstico in vitro. A empresa atua em **várias linhas** (NÃO só Hemostasia): **Hemostasia** laboratorial e **Point of Care** (Cascade Abrazo: TP/INR, TTPa, TCA), **Eletroforese capilar** (V8/SPIFE: proteínas séricas, hemoglobinopatias, imunofixação), **Parasitologia** (Coproplus/Coproplus Ultra: exame parasitológico de fezes) e **Testes rápidos** (ex.: COVID-19 SARS-CoV-2). Você ajuda a equipe a triar **editais de licitação** recebidos (via Effecti, Licita Já, ComprasNet), decidir se vale participar, e registrar aceite/recusa — aprendendo com decisões passadas.\n\n## SEU OBJETIVO\nPara cada edital: (1) entender o objeto e os itens; (2) cruzar com o **catálogo** de produtos/serviços que a NL Diagnostica realmente oferece e a **finalidade de uso**; (3) dizer se faz sentido participar, e **como** — por **produto** (quais itens a empresa consegue fornecer) ou por **lote/edital inteiro** (se consegue fornecer tudo do lote); (4) recomendar aceitar ou recusar com justificativa rastreável.\n\n## FERRAMENTAS\n1. `stats()` — contadores do painel (novos, sugeridos, aceitos, recusados, pendentes de sync). Use para visão geral.\n2. `list_editais({status?, uf?, search?, limit?, offset?})` — lista editais do painel já com score_match, modo_participacao e sugestão. **Sempre a primeira chamada** ao analisar a fila. Processe em LOTES (limit) para não sobrecarregar. status: novo|analisando|sugerido_aceitar|sugerido_recusar|aceito|recusado.\n3. `get_edital({edital_id})` — cabeçalho + itens detalhados (com match por item: catalogo_id, match_score, participa, lote). Use para analisar um edital específico antes de decidir.\n4. `catalogo()` — catálogo de produtos/serviços ativos (descrição, finalidade, palavras-chave). Use para justificar match/no-match.\n5. `learning_signals()` — agregados de decisões passadas (motivos de recusa, UFs aceitas/recusadas, exemplos recentes). **Consulte antes de recomendar** para não repetir erros e seguir o padrão histórico.\n6. `decidir_edital({edital_id, acao, motivo?, motivo_effecti?})` — registra a decisão (acao: aceitar|recusar). Use motivo_effecti SOMENTE em recusa, escolhendo um de: FALTA_CAPACIDADE_TECNICA, LOCALIDADE_ENTREGA, VALOR_ESTIMADO_BAIXO, DOCUMENTACAO_INSUFICIENTE, PRAZO_ENTREGA_CURTO, OUTROS. **Só decida quando o usuário pedir explicitamente** ou confirmar — caso contrário apenas recomende.\n7. `search_knowledge_base(query)` — RAG nos documentos internos liberados (manuais, especificações, regras). Use para detalhes técnicos/finalidade de uso.\n8. `search_session_files(query)` — busca SOMENTE nos arquivos anexados NESTA conversa pelo usuário. Use quando ele citar 'o arquivo/edital que enviei', 'este documento' ou 'o anexo'.\n9. `list_gestao({stage?, uf?, search?})` — lista os editais ACEITOS no board de acompanhamento (aba 'Gerenciar editais'), com etapa do funil (kanban_stage), responsável, prazo, prioridade e valor da proposta. Use para 'o que está em disputa?', 'o que está atrasado?', 'o que o fulano está tocando?', 'como está o andamento dos aceitos?'. Para achar o edital_id por número, use search.\n10. `board_stats()` — contadores do board por etapa (qualificado, documentacao, proposta_elaboracao, proposta_enviada, em_disputa, ganhou, perdeu). Sem parâmetros.\n11. `atualizar_gestao({edital_id, stage?, responsavel?, prazo?, prioridade?, valor_proposta?, observacoes?})` — move um edital aceito de etapa OU define responsável/prazo/prioridade/valor/observação. Use SOMENTE quando o usuário pedir/confirmar. Campos omitidos não mudam.\n\n## GESTÃO / BOARD (aba 'Gerenciar editais')\nApós ACEITO, o edital entra no board (estilo Monday) e percorre o funil nesta ordem: 1. `qualificado` → 2. `documentacao` → 3. `proposta_elaboracao` → 4. `proposta_enviada` → 5. `em_disputa` → 6. `ganhou` ✅ → 7. `perdeu` ❌. Cada card tem responsável, prazo, prioridade (baixa|media|alta) e valor da proposta. Use `list_gestao`/`board_stats` para LER e `atualizar_gestao` para ESCREVER (ex.: 'coloque o 90012 em disputa', 'responsável é a Ana', 'prazo 20/06'). Se o usuário citar o número do edital, ache o id com `list_gestao({search:'90012'})`.\n\n## CONTEXTO DE PÁGINA\nA mensagem pode começar com `[PÁGINA: ...]` indicando a tela atual ('Buscar editais' ou 'Gerenciar editais'). Use para desambiguar pedidos curtos: em 'Gerenciar editais', 'esse'/'mova'/'andamento' referem-se ao BOARD (list_gestao/atualizar_gestao); em 'Buscar editais', à fila de triagem (list_editais/decidir_edital). NUNCA repita o marcador `[PÁGINA: ...]` na resposta.\n\n## COMO DECIDIR O MODO DE PARTICIPAÇÃO\n- Use `get_edital` e olhe item a item:\n  - **Por produto**: liste exatamente quais itens a empresa consegue fornecer (participa=true) e quais não.\n  - **Por lote**: um lote só é fornecível se **TODOS** os itens do lote casarem com o catálogo. Diga quais lotes são 100% fornecíveis.\n  - **Edital inteiro (total)**: só se todos os itens forem fornecíveis.\n- Sempre cite o `score_match` e o `modo_participacao` do edital, e explique com base no catálogo + finalidade de uso.\n\n## PRINCÍPIOS\n1. **Nunca invente** que a empresa fornece algo. Baseie-se no catálogo e no RAG. Se não casar, diga que não faz sentido participar (ou que precisa cadastrar o produto no catálogo). **Mas não recuse por engano** itens de Eletroforese, Parasitologia ou Testes rápidos achando que a empresa 'só faz Hemostasia' — confira o catálogo das 4 linhas. Atenção a falsos positivos (ex.: 'hemoglobina glicada/HbA1c' NÃO é da linha Eletroforese; 'teste rápido' genérico de gravidez/glicemia/HIV NÃO está no catálogo; coprocultura/sangue oculto NÃO é parasitológico de fezes).\n2. **Aprenda com o histórico** (`learning_signals`): se editais semelhantes foram recusados por LOCALIDADE_ENTREGA ou VALOR_ESTIMADO_BAIXO, sinalize.\n3. **Mostre sempre os dados-chave** de cada edital: número (processo), órgão, estado (UF), data da licitação, link do edital e portal.\n4. **Processe em lotes.** Se houver muitos editais, analise `limit` por vez e ofereça continuar (offset).\n5. **Sem JSON cru** na resposta — extraia os campos relevantes em tabela markdown enxuta.\n6. **Saudação curta não chama tool.** Em 'oi/bom dia', explique o que faz e ofereça listar os editais novos.\n7. **NUNCA se contradiga.** Se `stats()` mostra um número > 0 para uma categoria (ex.: sugerido_aceitar=31), você NÃO pode dizer 'não há' dessa categoria. Se `list_editais` voltar vazio mas o stats indica que existem, REPITA a chamada SEM filtros de uf/search (só com o status) e com limit maior; nunca conclua 'não há' sem ter realmente listado com aquele status exato.\n8. **stats() conta; list_editais() lista.** Para FALAR de editais específicos (priorizar, explicar, recomendar) você é OBRIGADO a chamar `list_editais` com o status certo e, para o detalhe item a item, `get_edital`. Não baseie recomendações só nos contadores do stats.\n\n## FLUXO 'O QUE PRIORIZAR / O QUE ACEITAR'\n1. `list_editais({status:'sugerido_aceitar', limit:10})` — estes são os candidatos a aceitar. Se vier vazio mas stats>0, repita sem outros filtros.\n2. Se ainda quiser cobrir os 'novos', faça `list_editais({status:'novo', limit:10})`.\n3. Para CADA edital que for recomendar/explicar, chame `get_edital({edital_id})` e diga **item a item** qual produto/linha do catálogo casou (use `catalogo()` para nomear a finalidade). É assim que você responde 'por que aceitar / o que a empresa faz nele'.\n4. Monte a tabela e a justificativa. Só registre decisão com `decidir_edital` se o usuário confirmar.\n\n## FORMATO DE RESPOSTA (análise de fila)\n```\n## 📋 Editais — [N] novos analisados\n\n| nº edital | órgão | UF | data licitação | modo | score | sugestão | link |\n| :- | :- | :- | :- | :- | :- | :- | :- |\n| 90012/2026 | SES-SP | SP | 12/06/2026 | produto | 0.6 | aceitar | [edital](url) |\n\n## 🔎 Detalhe / justificativa\n- **90012/2026** — itens 1,3 (reagente TP, fibrinogênio) casam com catálogo Hemostasia; item 4 (proteinograma) casa com Eletroforese → participar por produto. Item 2 (bioquímica) fora de escopo. Sempre diga **qual item casou com qual linha/produto** e por quê.\n\n## ✅ Recomendação\n- Aceitar 90012/2026 (por produto: itens 1 e 3). Recusar 90020/2026 (LOCALIDADE_ENTREGA — histórico).\n```\n\n## TOM\nTécnico, objetivo, **pt-BR**. Markdown enxuto. Quando não souber, diga e sugira cadastrar no catálogo ou consultar a equipe comercial."
         }
       },
-      "id": "d1000000-0000-4000-8000-000000000003",
+      "id": "1e85021e-4948-40bf-9eee-a46fbf0d587c",
       "name": "AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.9,
-      "position": [40, 0]
+      "position": [2352, 832]
     },
     {
-      "parameters": { "model": "gpt-4o-mini", "options": {} },
-      "id": "d1000000-0000-4000-8000-000000000004",
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {}
+      },
+      "id": "a8c6c932-7f0b-4982-b062-e9c36fc2b43e",
       "name": "Azure OpenAI Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
       "typeVersion": 1,
-      "position": [-120, 260],
+      "position": [1824, 1120],
       "credentials": {
-        "azureOpenAiApi": { "id": "REPLACE_ME_AZURE_OPENAI_CRED", "name": "Azure OpenAI" }
+        "azureOpenAiApi": {
+          "id": "5Bz1JT1vCtggicsh",
+          "name": "Azure Open AI account-first"
+        }
       }
     },
     {
@@ -57,13 +62,16 @@
         "tableName": "nl_chat_message",
         "contextWindowLength": 8
       },
-      "id": "d1000000-0000-4000-8000-000000000005",
+      "id": "d7f348f7-0a2f-4913-bad8-802661b662b9",
       "name": "Postgres Chat Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.3,
-      "position": [40, 260],
+      "position": [1984, 1120],
       "credentials": {
-        "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" }
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
       }
     },
     {
@@ -71,28 +79,78 @@
         "mode": "retrieve-as-tool",
         "toolName": "search_knowledge_base",
         "toolDescription": "Busca trechos nos documentos internos (manuais, especificações técnicas, finalidade de uso, regras de participação). Use para fundamentar match e detalhes técnicos.",
-        "tableName": { "__rl": true, "value": "nl_documents", "mode": "list" },
+        "tableName": {
+          "__rl": true,
+          "value": "nl_documents",
+          "mode": "list"
+        },
         "topK": 6,
-        "options": { "queryName": "nl_match_documents" }
+        "options": {
+          "queryName": "nl_match_documents"
+        }
       },
-      "id": "d1000000-0000-4000-8000-000000000006",
+      "id": "07f1b537-2f80-431c-b651-729f1a0edaa6",
       "name": "Supabase Vector Store",
       "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
       "typeVersion": 1.1,
-      "position": [360, 320],
+      "position": [2672, 1152],
       "credentials": {
-        "supabaseApi": { "id": "REPLACE_ME_SUPABASE_CRED", "name": "Supabase account" }
+        "supabaseApi": {
+          "id": "i5Q8tj8Pyc9XjSGd",
+          "name": "Supabase account"
+        }
       }
     },
     {
-      "parameters": { "model": "text-embedding-3-small", "options": {} },
-      "id": "d1000000-0000-4000-8000-000000000007",
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "search_session_files",
+        "toolDescription": "Busca SOMENTE nos arquivos que o usuário anexou NESTA conversa. Use quando o usuário pedir algo sobre 'o arquivo que enviei', 'este documento', 'o anexo' ou referir-se a um upload feito no chat atual.",
+        "tableName": {
+          "__rl": true,
+          "value": "nl_documents",
+          "mode": "list"
+        },
+        "topK": 6,
+        "options": {
+          "queryName": "nl_match_documents",
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "session_id",
+                "value": "={{ $('Prepare Input').item.json.sessionId }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "84f56fb3-e1c6-4833-8bd5-5e3fb1216ece",
+      "name": "Supabase Vector Store (Sessão)",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [2944, 1152],
+      "credentials": {
+        "supabaseApi": {
+          "id": "i5Q8tj8Pyc9XjSGd",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "51ac9a70-885b-4383-a333-e42fc7913bea",
       "name": "Azure OpenAI Embeddings",
       "type": "@n8n/n8n-nodes-langchain.embeddingsAzureOpenAi",
       "typeVersion": 1,
-      "position": [360, 520],
+      "position": [2848, 1360],
       "credentials": {
-        "azureOpenAiApi": { "id": "REPLACE_ME_AZURE_OPENAI_CRED", "name": "Azure OpenAI" }
+        "azureOpenAiApi": {
+          "id": "xby4FSbCaCnssJxl",
+          "name": "Azure Open AI account 3"
+        }
       }
     },
     {
@@ -104,11 +162,11 @@
         "specifyBody": "json",
         "jsonBody": "={{ $fromAI('payload', '{}', 'json') }}"
       },
-      "id": "d1000000-0000-4000-8000-000000000008",
+      "id": "71bdb569-2df9-4cd8-bb9e-40cd132d602c",
       "name": "stats",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [-220, 520]
+      "position": [2096, 1360]
     },
     {
       "parameters": {
@@ -119,11 +177,11 @@
         "specifyBody": "json",
         "jsonBody": "={{ $fromAI('payload', '{}', 'json') }}"
       },
-      "id": "d1000000-0000-4000-8000-000000000009",
+      "id": "17f7396a-a179-4568-af6c-5bdde69f0c42",
       "name": "list_editais",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [-60, 520]
+      "position": [2256, 1360]
     },
     {
       "parameters": {
@@ -134,11 +192,11 @@
         "specifyBody": "json",
         "jsonBody": "={{ $fromAI('payload', '{}', 'json') }}"
       },
-      "id": "d1000000-0000-4000-8000-00000000000a",
+      "id": "72f792a2-a7f6-413d-82a2-2e75ab976675",
       "name": "get_edital",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [100, 520]
+      "position": [2416, 1360]
     },
     {
       "parameters": {
@@ -149,11 +207,11 @@
         "specifyBody": "json",
         "jsonBody": "={{ $fromAI('payload', '{}', 'json') }}"
       },
-      "id": "d1000000-0000-4000-8000-00000000000b",
+      "id": "6acc811a-bfe4-4004-9806-b77a2c59f7f3",
       "name": "catalogo",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [260, 520]
+      "position": [2576, 1360]
     },
     {
       "parameters": {
@@ -164,11 +222,11 @@
         "specifyBody": "json",
         "jsonBody": "={{ $fromAI('payload', '{}', 'json') }}"
       },
-      "id": "d1000000-0000-4000-8000-00000000000c",
+      "id": "74062c2e-441d-4dac-92d6-8eec986ee83f",
       "name": "learning_signals",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [-220, 660]
+      "position": [2096, 1504]
     },
     {
       "parameters": {
@@ -179,11 +237,56 @@
         "specifyBody": "json",
         "jsonBody": "={{ $fromAI('payload', '{}', 'json') }}"
       },
-      "id": "d1000000-0000-4000-8000-00000000000d",
+      "id": "f9e4f56e-f3f8-4737-861c-b16aca1744e7",
       "name": "decidir_edital",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [-60, 660]
+      "position": [2256, 1504]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Lista os editais ACEITOS que estão no board de gestão (aba 'Gerenciar editais'), com a etapa do funil (kanban_stage), responsável, prazo, prioridade e valor da proposta. Use para responder 'o que está em disputa?', 'o que está atrasado?', 'quais editais o João está tocando?'. Parâmetros (JSON): { stage?: 'qualificado'|'documentacao'|'proposta_elaboracao'|'proposta_enviada'|'em_disputa'|'ganhou'|'perdeu', uf?: string, search?: string }.",
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/nldiag-tool-board",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $fromAI('payload', '{}', 'json') }}"
+      },
+      "id": "b1a00001-0000-4000-8000-000000000001",
+      "name": "list_gestao",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [2416, 1504]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Contadores do board de gestão: total de aceitos e quantos em cada etapa do funil (qualificado, documentacao, proposta_elaboracao, proposta_enviada, em_disputa, ganhou, perdeu). Sem parâmetros.",
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/nldiag-tool-board-stats",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $fromAI('payload', '{}', 'json') }}"
+      },
+      "id": "b1a00001-0000-4000-8000-000000000002",
+      "name": "board_stats",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [2576, 1504]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Atualiza a gestão de um edital ACEITO no board (mover de etapa, definir responsável, prazo, prioridade, valor da proposta ou observações). Use SOMENTE quando o usuário pedir/confirmar. Campos omitidos não são alterados. Parâmetros (JSON): { edital_id: uuid, stage?: 'qualificado'|'documentacao'|'proposta_elaboracao'|'proposta_enviada'|'em_disputa'|'ganhou'|'perdeu', responsavel?: string, prazo?: 'YYYY-MM-DD', prioridade?: 'baixa'|'media'|'alta', valor_proposta?: number, observacoes?: string }.",
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/nldiag-tool-gestao",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $fromAI('payload', '{}', 'json') }}"
+      },
+      "id": "b1a00001-0000-4000-8000-000000000003",
+      "name": "atualizar_gestao",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [2416, 1648]
     },
     {
       "parameters": {
@@ -191,31 +294,186 @@
         "responseBody": "={ \"output\": {{ JSON.stringify($json.output) }}, \"sessionId\": \"{{ $('Prepare Input').item.json.sessionId }}\" }",
         "options": {}
       },
-      "id": "d1000000-0000-4000-8000-00000000000e",
+      "id": "86404452-496f-474f-9b28-b17f74b07f30",
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [360, 0]
+      "position": [2672, 832]
     }
   ],
-  "pinData": {},
   "connections": {
-    "Webhook: AgentRag": { "main": [[{ "node": "Prepare Input", "type": "main", "index": 0 }]] },
-    "Prepare Input": { "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]] },
-    "AI Agent": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] },
-    "Azure OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]] },
-    "Postgres Chat Memory": { "ai_memory": [[{ "node": "AI Agent", "type": "ai_memory", "index": 0 }]] },
-    "Azure OpenAI Embeddings": { "ai_embedding": [[{ "node": "Supabase Vector Store", "type": "ai_embedding", "index": 0 }]] },
-    "Supabase Vector Store": { "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]] },
-    "stats": { "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]] },
-    "list_editais": { "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]] },
-    "get_edital": { "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]] },
-    "catalogo": { "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]] },
-    "learning_signals": { "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]] },
-    "decidir_edital": { "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]] }
+    "Webhook: AgentRag": {
+      "main": [
+        [
+          {
+            "node": "Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Input": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store (Sessão)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Supabase Vector Store (Sessão)",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "stats": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "list_editais": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_edital": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "catalogo": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "learning_signals": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "decidir_edital": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "list_gestao": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "board_stats": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "atualizar_gestao": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    }
   },
-  "active": false,
-  "settings": { "executionOrder": "v1" },
-  "id": "NLDiagAgent",
-  "tags": []
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  }
 }

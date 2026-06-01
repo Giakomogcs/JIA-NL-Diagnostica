@@ -42,5 +42,26 @@
 **Análise:** Item casa, mas o valor de referência está abaixo do custo viável.
 **Recomendação:** **Recusar** — `VALOR_ESTIMADO_BAIXO` (ou revisar com o comercial).
 
+## Exemplo 7 — Eletroforese (aceitar por produto)
+**Objeto:** "Aquisição de sistema de eletroforese de proteínas séricas com kits."
+**Itens:** 1) Equipamento de eletroforese capilar em comodato; 2) Kit proteinograma (proteínas séricas); 3) Kit imunofixação (IgG, IgA, IgM, kappa, lambda).
+**Análise:** Todos casam com a linha **Eletroforese** (V8/SPIFE). NÃO recuse achando que é "fora de Hemostasia" — está no catálogo.
+**Modo:** lote/total. **Recomendação:** **Aceitar**.
+
+## Exemplo 8 — Parasitologia (aceitar — fabricação própria)
+**Objeto:** "Sistema coletor para exame parasitológico de fezes (EPF) por sedimentação — 20.000 frascos."
+**Análise:** Casa com a linha **Parasitologia** (Coproplus/Coproplus Ultra), fabricação exclusiva NL.
+**Modo:** produto/total. **Recomendação:** **Aceitar** (boa competitividade por ser fabricação própria; avaliar UF/prazo).
+
+## Exemplo 9 — Hemostasia Point of Care
+**Objeto:** "Equipamento portátil de coagulação à beira-leito (TP/INR e TCA) para centro cirúrgico."
+**Análise:** Casa com a linha **Hemostasia POC** (Cascade Abrazo). O **TCA** e o caráter **point of care** indicam esta linha, não a de bancada.
+**Modo:** produto/lote. **Recomendação:** **Aceitar**.
+
+## Exemplo 10 — Falso positivo (NÃO casa apesar de termo parecido)
+**Objeto:** "Reagente de hemoglobina glicada (HbA1c) e teste rápido de gravidez."
+**Análise:** "Hemoglobina glicada" é **bioquímica**, NÃO é a eletroforese de hemoglobina (hemoglobinopatias) da nossa linha; "teste rápido de gravidez" NÃO está no catálogo (só temos teste rápido de COVID-19). Nenhum item casa.
+**Modo:** nenhum. **Recomendação:** **Recusar** — `FALTA_CAPACIDADE_TECNICA`.
+
 ## Padrão de resposta esperado
 Para cada edital citar: **nº, órgão, UF, data da licitação, link**; explicar o match item a item; dizer o **modo** e a **recomendação** com o **motivo** quando recusar.

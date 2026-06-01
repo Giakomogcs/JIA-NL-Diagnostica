@@ -25,6 +25,9 @@ $titles = @{
   "REGRAS-PARTICIPACAO-01" = "Regras de Participação e Critérios de Decisão"
   "EFFECTI-INTEGRACAO-01"  = "Integração Effecti — Campos e sincronização"
   "EXEMPLOS-ANALISE-01"    = "Exemplos de Análise de Editais"
+  "LINHA-ELETROFORESE-01"  = "Linha Eletroforese (V8/SPIFE) — Produtos e finalidade de uso"
+  "LINHA-PARASITOLOGIA-01" = "Linha Parasitologia (Coproplus) — Produtos e finalidade de uso"
+  "LINHA-TESTES-RAPIDOS-01"= "Linha Testes Rápidos — Produtos e finalidade de uso"
 }
 
 $files = Get-ChildItem -Path $DocsDir -Filter *.md | Where-Object { $_.Name -ne "README.md" } | Sort-Object Name

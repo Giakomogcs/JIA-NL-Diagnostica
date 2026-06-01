@@ -4,8 +4,8 @@
 **Finalidade:** orientar o agente sobre quando recomendar **aceitar** ou **recusar** um edital e como justificar.
 
 ## Passo a passo de análise de um edital
-1. **Ler o objeto** e identificar a área (coagulação/hemostasia? outra?).
-2. **Abrir os itens** (`get_edital`) e, item a item, verificar match com o catálogo (`catalogo`).
+1. **Ler o objeto** e identificar a(s) área(s): Hemostasia (lab ou Point of Care), Eletroforese, Parasitologia, Testes rápidos — ou outra (fora de escopo).
+2. **Abrir os itens** (`get_edital`) e, item a item, verificar match com o catálogo (`catalogo`), identificando **qual linha/produto** corresponde.
 3. **Classificar o modo de participação**:
    - todos os itens casam → **total**;
    - algum lote 100% fornecível → **lote**;
@@ -25,7 +25,7 @@
 ## Critérios para RECUSAR (com motivo Effecti)
 | Situação | Motivo Effecti |
 |---|---|
-| Item de outra área / fora da linha Hemostasia sem catálogo | `FALTA_CAPACIDADE_TECNICA` |
+| Item de outra área / sem correspondência em nenhuma das linhas do catálogo | `FALTA_CAPACIDADE_TECNICA` |
 | Entrega em UF/região não atendida ou logística inviável | `LOCALIDADE_ENTREGA` |
 | Preço de referência abaixo do viável | `VALOR_ESTIMADO_BAIXO` |
 | Exigência documental/registro que não atendemos | `DOCUMENTACAO_INSUFICIENTE` |
@@ -41,7 +41,8 @@
 
 ## Boas práticas de comunicação
 - Sempre exibir: **número do edital, órgão, UF, data da licitação, link do edital e portal**.
-- Explicar o match **item a item** (qual item casou com qual produto e por quê).
+- Explicar o match **item a item** (qual item casou com qual produto/**linha** e por quê).
+- Cuidado com **falsos positivos**: 'hemoglobina glicada/HbA1c' não é Eletroforese; 'teste rápido' genérico (gravidez, glicemia, HIV) não está no catálogo; coprocultura/sangue oculto não é parasitológico de fezes.
 - Ser explícito sobre **o que NÃO conseguimos** fornecer no edital.
 - Nunca afirmar capacidade que não está no catálogo. Em dúvida, sugerir **cadastrar no catálogo** ou **consultar o comercial**.
 

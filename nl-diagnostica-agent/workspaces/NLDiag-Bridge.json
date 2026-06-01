@@ -1,193 +1,596 @@
 {
-  "name": "NLDiag-Bridge",
   "nodes": [
     {
-      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-stats", "responseMode": "responseNode", "options": {} },
-      "id": "c1000000-0000-4000-8000-000000000001",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-tool-stats",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8df57955-caed-4ee0-91a0-ec983ec11988",
       "name": "WH stats",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-300, -360],
+      "position": [3424, 2672],
       "webhookId": "nldiag-tool-stats"
     },
     {
-      "parameters": { "operation": "executeQuery", "query": "SELECT nl_stats() AS data;", "options": {} },
-      "id": "c1000000-0000-4000-8000-000000000002",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_stats() AS data;",
+        "options": {}
+      },
+      "id": "a18cbb33-eed5-4275-99a4-2df2d507642a",
       "name": "Q stats",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [-60, -360],
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "position": [3664, 2672],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
-      "parameters": { "respondWith": "allIncomingItems", "options": {} },
-      "id": "c1000000-0000-4000-8000-000000000003",
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "de4568c6-d8a1-47f0-b8e0-3947cde5b8af",
       "name": "R stats",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [180, -360]
+      "position": [3904, 2672]
     },
-
     {
-      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-dashboard", "responseMode": "responseNode", "options": {} },
-      "id": "c1000000-0000-4000-8000-000000000004",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-tool-dashboard",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6fc2c461-83db-43c0-b5e0-4dee53d3e166",
       "name": "WH dashboard",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-300, -200],
+      "position": [3424, 2832],
       "webhookId": "nldiag-tool-dashboard"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT * FROM nl_dashboard_editais(\n  NULLIF('{{ $json.body.status }}','')::text,\n  NULLIF('{{ $json.body.uf }}','')::text,\n  NULLIF('{{ $json.body.search }}','')::text,\n  NULL,\n  COALESCE({{ $json.body.limit || 20 }}, 20),\n  COALESCE({{ $json.body.offset || 0 }}, 0)\n);",
+        "query": "SELECT * FROM nl_dashboard_editais(\n  NULLIF('{{ $json.body.status || '' }}','')::text,\n  NULLIF('{{ $json.body.uf || '' }}','')::text,\n  NULLIF('{{ $json.body.search || '' }}','')::text,\n  NULL,\n  COALESCE({{ $json.body.limit || 20 }}, 20),\n  COALESCE({{ $json.body.offset || 0 }}, 0)\n);",
         "options": {}
       },
-      "id": "c1000000-0000-4000-8000-000000000005",
+      "id": "fa0e6a7c-9ed2-4ffd-a975-e089aff136a4",
       "name": "Q dashboard",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [-60, -200],
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "position": [3664, 2832],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
-      "parameters": { "respondWith": "allIncomingItems", "options": {} },
-      "id": "c1000000-0000-4000-8000-000000000006",
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "7d3ab11f-abba-4710-a261-2c3af8f26996",
       "name": "R dashboard",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [180, -200]
+      "position": [3904, 2832]
     },
-
     {
-      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-edital", "responseMode": "responseNode", "options": {} },
-      "id": "c1000000-0000-4000-8000-000000000007",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-tool-edital",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "af6ac61b-61a9-41a1-b09d-30688fe1ce71",
       "name": "WH edital",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-300, -40],
+      "position": [3424, 2992],
       "webhookId": "nldiag-tool-edital"
     },
     {
-      "parameters": { "operation": "executeQuery", "query": "SELECT nl_get_edital('{{ $json.body.edital_id }}'::uuid) AS data;", "options": {} },
-      "id": "c1000000-0000-4000-8000-000000000008",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_get_edital('{{ $json.body.edital_id }}'::uuid) AS data;",
+        "options": {}
+      },
+      "id": "7c091706-c0b7-4464-be4a-b33a56a5a760",
       "name": "Q edital",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [-60, -40],
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "position": [3664, 2992],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
-      "parameters": { "respondWith": "allIncomingItems", "options": {} },
-      "id": "c1000000-0000-4000-8000-000000000009",
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "2078cc38-882b-4ffa-99ad-ab153cc68a31",
       "name": "R edital",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [180, -40]
+      "position": [3904, 2992]
     },
-
     {
-      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-learning", "responseMode": "responseNode", "options": {} },
-      "id": "c1000000-0000-4000-8000-00000000000a",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-tool-learning",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "fb41705c-bf8b-40cd-9689-7b3ada7c47b1",
       "name": "WH learning",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-300, 120],
+      "position": [3424, 3152],
       "webhookId": "nldiag-tool-learning"
     },
     {
-      "parameters": { "operation": "executeQuery", "query": "SELECT nl_learning_signals(20) AS data;", "options": {} },
-      "id": "c1000000-0000-4000-8000-00000000000b",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_learning_signals(20) AS data;",
+        "options": {}
+      },
+      "id": "e5b4958f-1889-47e6-94e9-09a3a965e919",
       "name": "Q learning",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [-60, 120],
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "position": [3664, 3152],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
-      "parameters": { "respondWith": "allIncomingItems", "options": {} },
-      "id": "c1000000-0000-4000-8000-00000000000c",
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "655a7d83-d2d8-40b2-a019-a5fce060a502",
       "name": "R learning",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [180, 120]
+      "position": [3904, 3152]
     },
-
     {
-      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-catalogo", "responseMode": "responseNode", "options": {} },
-      "id": "c1000000-0000-4000-8000-00000000000d",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-tool-catalogo",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "71290aa4-7152-43f3-bbd7-ca86d1a425ca",
       "name": "WH catalogo",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-300, 280],
+      "position": [3424, 3312],
       "webhookId": "nldiag-tool-catalogo"
     },
     {
-      "parameters": { "operation": "executeQuery", "query": "SELECT id, tipo, linha, descricao, finalidade, palavras_chave, sinonimos, marca, ativo FROM nl_catalogo WHERE ativo ORDER BY linha, descricao;", "options": {} },
-      "id": "c1000000-0000-4000-8000-00000000000e",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, tipo, linha, descricao, finalidade, palavras_chave, sinonimos, marca, ativo FROM nl_catalogo WHERE ativo ORDER BY linha, descricao;",
+        "options": {}
+      },
+      "id": "a0cf38dc-0ead-4f09-93c1-f6a8273b0042",
       "name": "Q catalogo",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [-60, 280],
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "position": [3664, 3312],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
-      "parameters": { "respondWith": "allIncomingItems", "options": {} },
-      "id": "c1000000-0000-4000-8000-00000000000f",
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "2992c16e-d3a3-409d-89da-f481aad4ad9d",
       "name": "R catalogo",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [180, 280]
+      "position": [3904, 3312]
     },
-
     {
-      "parameters": { "httpMethod": "POST", "path": "nldiag-tool-decision", "responseMode": "responseNode", "options": {} },
-      "id": "c1000000-0000-4000-8000-000000000010",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-tool-decision",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6cf3deca-c7b7-4eae-8ad3-d36f2c1864ac",
       "name": "WH decision",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-300, 440],
+      "position": [3424, 3472],
       "webhookId": "nldiag-tool-decision"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT nl_record_decision(\n  '{{ $json.body.edital_id }}'::uuid,\n  '{{ $json.body.acao }}',\n  NULLIF('{{ $json.body.motivo }}',''),\n  NULLIF('{{ $json.body.motivo_effecti }}',''),\n  'ia'\n) AS data;",
+        "query": "SELECT nl_record_decision(\n  '{{ $json.body.edital_id }}'::uuid,\n  '{{ $json.body.acao }}',\n  NULLIF('{{ $json.body.motivo || '' }}',''),\n  NULLIF('{{ $json.body.motivo_effecti || '' }}',''),\n  'ia'\n) AS data;",
         "options": {}
       },
-      "id": "c1000000-0000-4000-8000-000000000011",
+      "id": "5fd63e29-3664-4c31-bd39-eb589b8631c6",
       "name": "Q decision",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [-60, 440],
-      "credentials": { "postgres": { "id": "REPLACE_ME_NLDIAG_DB", "name": "NLDiag-DB" } }
+      "position": [3664, 3472],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
     },
     {
-      "parameters": { "respondWith": "allIncomingItems", "options": {} },
-      "id": "c1000000-0000-4000-8000-000000000012",
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "9e00eb0a-054e-4cd4-b186-54c7a659045e",
       "name": "R decision",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [180, 440]
+      "position": [3904, 3472]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-tool-board",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ea44f1fb-fb7b-4de0-8a27-d4a8b6e56884",
+      "name": "WH board",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [3424, 3632],
+      "webhookId": "nldiag-tool-board"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM nl_board_editais(\n  NULLIF('{{ $json.body.stage || '' }}','')::text,\n  NULLIF('{{ $json.body.search || '' }}','')::text,\n  NULLIF('{{ $json.body.uf || '' }}','')::text\n);",
+        "options": {}
+      },
+      "id": "fc761d43-755a-4e81-bdb5-d9d3c0ef1e1c",
+      "name": "Q board",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [3664, 3632],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "b860b896-bbd9-48a3-af86-ea7ace57de57",
+      "name": "R board",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3904, 3632]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-tool-board-stats",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "94c053a8-9e89-4535-ac97-08a041863535",
+      "name": "WH board-stats",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [3424, 3792],
+      "webhookId": "nldiag-tool-board-stats"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_board_stats() AS data;",
+        "options": {}
+      },
+      "id": "a7165003-3c8c-4e52-a0ac-3570f249c6d6",
+      "name": "Q board-stats",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [3664, 3792],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "e33c3e20-0e6a-4e56-933f-e2d0c13b47fe",
+      "name": "R board-stats",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3904, 3792]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-tool-gestao",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a117c607-75e5-444c-977a-452bd273288e",
+      "name": "WH gestao",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [3424, 3952],
+      "webhookId": "nldiag-tool-gestao"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_update_gestao(\n  '{{ $json.body.edital_id }}'::uuid,\n  NULLIF('{{ $json.body.stage || '' }}','')::text,\n  NULLIF('{{ $json.body.responsavel || '' }}','')::text,\n  NULLIF('{{ $json.body.prazo || '' }}','')::date,\n  NULLIF('{{ $json.body.prioridade || '' }}','')::text,\n  NULLIF('{{ $json.body.valor_proposta || '' }}','')::numeric,\n  NULLIF('{{ $json.body.observacoes || '' }}','')::text\n) AS data;",
+        "options": {}
+      },
+      "id": "a99a2e34-7cee-4e10-b86a-a226a76c7f08",
+      "name": "Q gestao",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [3664, 3952],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "9cf1c0a5-bebd-4e81-a1fe-242dd1e47aa1",
+      "name": "R gestao",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3904, 3952]
     }
   ],
-  "pinData": {},
   "connections": {
-    "WH stats":     { "main": [[{ "node": "Q stats", "type": "main", "index": 0 }]] },
-    "Q stats":      { "main": [[{ "node": "R stats", "type": "main", "index": 0 }]] },
-    "WH dashboard": { "main": [[{ "node": "Q dashboard", "type": "main", "index": 0 }]] },
-    "Q dashboard":  { "main": [[{ "node": "R dashboard", "type": "main", "index": 0 }]] },
-    "WH edital":    { "main": [[{ "node": "Q edital", "type": "main", "index": 0 }]] },
-    "Q edital":     { "main": [[{ "node": "R edital", "type": "main", "index": 0 }]] },
-    "WH learning":  { "main": [[{ "node": "Q learning", "type": "main", "index": 0 }]] },
-    "Q learning":   { "main": [[{ "node": "R learning", "type": "main", "index": 0 }]] },
-    "WH catalogo":  { "main": [[{ "node": "Q catalogo", "type": "main", "index": 0 }]] },
-    "Q catalogo":   { "main": [[{ "node": "R catalogo", "type": "main", "index": 0 }]] },
-    "WH decision":  { "main": [[{ "node": "Q decision", "type": "main", "index": 0 }]] },
-    "Q decision":   { "main": [[{ "node": "R decision", "type": "main", "index": 0 }]] }
+    "WH stats": {
+      "main": [
+        [
+          {
+            "node": "Q stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q stats": {
+      "main": [
+        [
+          {
+            "node": "R stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WH dashboard": {
+      "main": [
+        [
+          {
+            "node": "Q dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q dashboard": {
+      "main": [
+        [
+          {
+            "node": "R dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WH edital": {
+      "main": [
+        [
+          {
+            "node": "Q edital",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q edital": {
+      "main": [
+        [
+          {
+            "node": "R edital",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WH learning": {
+      "main": [
+        [
+          {
+            "node": "Q learning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q learning": {
+      "main": [
+        [
+          {
+            "node": "R learning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WH catalogo": {
+      "main": [
+        [
+          {
+            "node": "Q catalogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q catalogo": {
+      "main": [
+        [
+          {
+            "node": "R catalogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WH decision": {
+      "main": [
+        [
+          {
+            "node": "Q decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q decision": {
+      "main": [
+        [
+          {
+            "node": "R decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WH board": {
+      "main": [
+        [
+          {
+            "node": "Q board",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q board": {
+      "main": [
+        [
+          {
+            "node": "R board",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WH board-stats": {
+      "main": [
+        [
+          {
+            "node": "Q board-stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q board-stats": {
+      "main": [
+        [
+          {
+            "node": "R board-stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WH gestao": {
+      "main": [
+        [
+          {
+            "node": "Q gestao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Q gestao": {
+      "main": [
+        [
+          {
+            "node": "R gestao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "active": false,
-  "settings": { "executionOrder": "v1" },
-  "id": "NLDiagBridge",
-  "tags": []
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  }
 }
