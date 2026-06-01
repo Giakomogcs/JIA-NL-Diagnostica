@@ -137,6 +137,17 @@
   .score-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--pri),var(--pri2));transition:width .4s ease}
   .row-actions{display:flex;gap:6px;flex-wrap:wrap}
   .row-actions button{padding:5px 11px;font-size:12px}
+  /* linha clicável + resumo da IA */
+  tr.edital-row{cursor:pointer}
+  tr.edital-row.has-ai td{border-bottom:none}
+  tr.ai-row{cursor:pointer}
+  tr.ai-row td{padding-top:0;padding-bottom:12px}
+  tr.ai-row:hover td,tr.edital-row.has-ai:hover td{background:var(--pri-soft)}
+  .ai-callout{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.45;border-radius:10px;padding:9px 12px;border:1px solid}
+  .ai-callout .ai-ico{flex:0 0 auto;font-size:13px}
+  .ai-callout.ok{background:#f0fdf4;border-color:#bbf7d0;color:#15603a}
+  .ai-callout.warn{background:#fffbeb;border-color:#fde68a;color:#92600a}
+  .ai-callout strong{font-weight:700}
   .pager{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:14px;color:var(--muted);font-size:13px}
   /* modal */
   .modal-bg{position:fixed;inset:0;background:rgba(16,24,40,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
@@ -197,13 +208,37 @@
   .cp-quick .qa-btn svg{width:15px;height:15px;color:var(--pri2);flex-shrink:0}
   .cp-quick .qa-btn:hover{background:var(--pri-soft);border-color:var(--pri);color:var(--pri2)}
   #chatPanel.hidden{display:none!important}
+  /* estado expandido (quase tela cheia) */
+  #chatPanel.expanded{width:min(960px,calc(100vw - 44px));height:calc(100vh - 60px);right:22px;bottom:22px}
+  #chatPanel.expanded .msg{max-width:75%}
   @media (max-width:768px){
     #chatPanel{right:10px;bottom:10px;width:calc(100vw - 20px);height:calc(100vh - 90px)}
+    #chatPanel.expanded{width:calc(100vw - 20px);height:calc(100vh - 70px);right:10px;bottom:10px}
     #chatFab{right:16px;bottom:16px}
   }
-  .msg{max-width:85%;padding:11px 15px;border-radius:14px;white-space:pre-wrap;line-height:1.55;box-shadow:0 1px 2px rgba(16,24,40,.06)}
-  .msg.u{align-self:flex-end;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;border-bottom-right-radius:4px}
-  .msg.a{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+  .msg{max-width:85%;padding:11px 15px;border-radius:14px;line-height:1.55;box-shadow:0 1px 2px rgba(16,24,40,.06)}
+  .msg.u{align-self:flex-end;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;border-bottom-right-radius:4px;white-space:pre-wrap}
+  .msg.a{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px;overflow-x:auto}
+  /* markdown renderizado (respostas do assistente) */
+  .msg.a > :first-child{margin-top:0}
+  .msg.a > :last-child{margin-bottom:0}
+  .msg.a p{margin:0 0 8px}
+  .msg.a h1,.msg.a h2,.msg.a h3,.msg.a h4{margin:12px 0 6px;line-height:1.25;font-weight:700}
+  .msg.a h1{font-size:17px} .msg.a h2{font-size:15.5px} .msg.a h3{font-size:14px} .msg.a h4{font-size:13px}
+  .msg.a ul,.msg.a ol{margin:4px 0 8px;padding-left:20px}
+  .msg.a li{margin:2px 0}
+  .msg.a a{color:var(--pri2);font-weight:600;text-decoration:none}
+  .msg.a a:hover{text-decoration:underline}
+  .msg.a code{background:var(--chip);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
+  .msg.a pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px 14px;overflow-x:auto;margin:8px 0}
+  .msg.a pre code{background:none;border:0;padding:0;color:inherit;font-size:12.5px}
+  .msg.a blockquote{margin:8px 0;padding:4px 12px;border-left:3px solid var(--pri);background:var(--pri-soft);border-radius:0 8px 8px 0;color:var(--txt)}
+  .msg.a hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+  .msg.a table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12.5px}
+  .msg.a th,.msg.a td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+  .msg.a thead th{background:var(--pri-soft);color:var(--brand2);font-weight:700;white-space:nowrap}
+  .msg.a tbody tr:nth-child(even){background:#fafbfd}
+  .msg.a strong{font-weight:700}
   .composer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
   .composer textarea{resize:none;height:44px}
   .muted{color:var(--muted)} .right-align{text-align:right}
@@ -408,6 +443,7 @@
     <i data-lucide="bot"></i>
     <strong>Assistente IA</strong>
     <span class="cp-ctx" id="chatCtx"></span>
+    <button class="cp-icon" id="chatExpand" title="Expandir"><i data-lucide="maximize-2"></i></button>
     <button class="cp-icon" id="chatHistoryBtn" title="Conversas"><i data-lucide="history"></i></button>
     <button class="cp-icon" id="newChat" title="Nova conversa"><i data-lucide="plus"></i></button>
     <button class="cp-icon" id="chatClose" title="Fechar"><i data-lucide="x"></i></button>
@@ -476,7 +512,91 @@ const stripCtx = s => (s==null?'':String(s)).replace(/^\s*\[CONTEXTO[^\]]*\]\s*/
 // remove marcação HTML (ex.: <em>, <mark>) que vem dos portais de busca e normaliza espaços
 const stripTags = s => (s==null?'':String(s)).replace(/<\/?[^>]+>/g,'').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#0?39;|&apos;/gi,"'").replace(/\s+/g,' ').trim();
 const txt = s => esc(stripTags(s));
-const mdLite = s => esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+const mdLite = s => esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); // legado (mantido p/ compat.)
+/* ---- renderizador de markdown (respostas do assistente) ---- */
+// inline: escapa HTML primeiro, depois aplica code/bold/italic/links com segurança
+function mdInline(s){
+  let h = esc(s);
+  // `código`
+  h = h.replace(/`([^`]+)`/g, (m,c)=>`<code>${c}</code>`);
+  // links [texto](url) — só http(s)/mailto
+  h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g,
+    (m,t,u)=>`<a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`);
+  // **negrito** e __negrito__
+  h = h.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/__([^_]+)__/g,'<strong>$1</strong>');
+  // *itálico* e _itálico_
+  h = h.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g,'$1<em>$2</em>').replace(/(^|[^_])_([^_\n]+)_(?!_)/g,'$1<em>$2</em>');
+  return h;
+}
+function mdTableRow(line){
+  let s = line.trim().replace(/^\|/,'').replace(/\|$/,'');
+  return s.split('|').map(c=>c.trim());
+}
+function mdRender(src){
+  if(src==null) return '';
+  const lines = String(src).replace(/\r\n/g,'\n').split('\n');
+  let html='', i=0;
+  const flushList = (()=>{}); // placeholder
+  while(i < lines.length){
+    let line = lines[i];
+    // bloco de código cercado ```
+    const fence = line.match(/^\s*```(\w*)\s*$/);
+    if(fence){
+      let code=[]; i++;
+      while(i<lines.length && !/^\s*```\s*$/.test(lines[i])){ code.push(lines[i]); i++; }
+      i++; // pula fence de fechamento
+      html += `<pre><code>${esc(code.join('\n'))}</code></pre>`;
+      continue;
+    }
+    // tabela GFM: linha com | seguida de linha separadora |---|
+    if(/\|/.test(line) && i+1<lines.length && /^\s*\|?\s*:?-+/.test(lines[i+1]) && /\|/.test(lines[i+1])){
+      const head = mdTableRow(line);
+      i += 2; // pula cabeçalho e separador
+      let body=[];
+      while(i<lines.length && /\|/.test(lines[i]) && lines[i].trim()!==''){ body.push(mdTableRow(lines[i])); i++; }
+      html += '<table><thead><tr>'+head.map(c=>`<th>${mdInline(c)}</th>`).join('')+'</tr></thead><tbody>'
+        + body.map(r=>'<tr>'+head.map((_,k)=>`<td>${mdInline(r[k]||'')}</td>`).join('')+'</tr>').join('')
+        + '</tbody></table>';
+      continue;
+    }
+    // título
+    const hm = line.match(/^(#{1,4})\s+(.*)$/);
+    if(hm){ const lvl=hm[1].length; html += `<h${lvl}>${mdInline(hm[2])}</h${lvl}>`; i++; continue; }
+    // linha horizontal
+    if(/^\s*(---|\*\*\*|___)\s*$/.test(line)){ html += '<hr>'; i++; continue; }
+    // citação
+    if(/^\s*>\s?/.test(line)){
+      let q=[];
+      while(i<lines.length && /^\s*>\s?/.test(lines[i])){ q.push(lines[i].replace(/^\s*>\s?/,'')); i++; }
+      html += `<blockquote>${mdInline(q.join('\n')).replace(/\n/g,'<br>')}</blockquote>`;
+      continue;
+    }
+    // lista não-ordenada
+    if(/^\s*[-*+]\s+/.test(line)){
+      let items=[];
+      while(i<lines.length && /^\s*[-*+]\s+/.test(lines[i])){ items.push(lines[i].replace(/^\s*[-*+]\s+/,'')); i++; }
+      html += '<ul>'+items.map(t=>`<li>${mdInline(t)}</li>`).join('')+'</ul>';
+      continue;
+    }
+    // lista ordenada
+    if(/^\s*\d+[.)]\s+/.test(line)){
+      let items=[];
+      while(i<lines.length && /^\s*\d+[.)]\s+/.test(lines[i])){ items.push(lines[i].replace(/^\s*\d+[.)]\s+/,'')); i++; }
+      html += '<ol>'+items.map(t=>`<li>${mdInline(t)}</li>`).join('')+'</ol>';
+      continue;
+    }
+    // linha em branco
+    if(line.trim()===''){ i++; continue; }
+    // parágrafo (agrupa linhas consecutivas)
+    let para=[];
+    while(i<lines.length && lines[i].trim()!=='' && !/^\s*(#{1,4}\s|[-*+]\s|\d+[.)]\s|>\s?|```)/.test(lines[i])
+          && !(/\|/.test(lines[i]) && i+1<lines.length && /^\s*\|?\s*:?-+/.test(lines[i+1]))){
+      para.push(lines[i]); i++;
+    }
+    html += `<p>${mdInline(para.join('\n')).replace(/\n/g,'<br>')}</p>`;
+  }
+  return html;
+}
 
 /* ============ auth ============ */
 async function handleSession(session){
@@ -594,13 +714,13 @@ function rowHtml(r){
   const score = Math.round((r.score_match||0)*100);
   const links = `${r.url_edital?`<a class="pill-link" href="${esc(r.url_edital)}" target="_blank" rel="noopener">edital ↗</a>`:''}${r.url_portal&&r.url_portal!==r.url_edital?` · <a class="pill-link" href="${esc(r.url_portal)}" target="_blank" rel="noopener">portal ↗</a>`:''}${r.portal_nome?`<div class="badge">${esc(r.portal_nome)}</div>`:''}`;
   const decided = r.status==='aceito'||r.status==='recusado';
-  const acts = decided ? `<button class="btn-ghost" data-act="view" data-id="${r.id}">ver</button>` :
-    `<div class="row-actions">
-       <button class="btn-ghost" data-act="view" data-id="${r.id}">ver</button>
-       <button class="btn-ok" data-act="accept" data-id="${r.id}" data-lic="${r.id_licitacao||''}">aceitar</button>
-       <button class="btn-no" data-act="reject" data-id="${r.id}" data-lic="${r.id_licitacao||''}">recusar</button>
-     </div>`;
-  return `<tr>
+  const acts = decided
+    ? `<button class="btn-ghost" data-act="open" data-id="${r.id}">Detalhes</button>`
+    : `<button class="btn-pri" data-act="open" data-id="${r.id}">Responder</button>`;
+  const ai = aiResumo(r);
+  const aiRow = ai ? `<tr class="ai-row" data-open="${r.id}"><td colspan="9">
+      <div class="ai-callout ${r.status==='sugerido_aceitar'?'ok':'warn'}"><span class="ai-ico">${r.status==='sugerido_aceitar'?'✅':'🔎'}</span><span>${ai}</span></div></td></tr>` : '';
+  return `<tr class="edital-row${ai?' has-ai':''}" data-open="${r.id}">
     <td><strong>${esc(r.numero_edital||'—')}</strong><div class="modo">${txt(r.modalidade)}</div></td>
     <td>${txt(r.orgao)||'—'}<div class="modo">${txt((r.objeto||'').slice(0,140)).slice(0,70)}${stripTags(r.objeto).length>70?'…':''}</div></td>
     <td>${esc(r.uf||'—')}</td>
@@ -610,15 +730,30 @@ function rowHtml(r){
     <td>${statusTag(r.status)}</td>
     <td>${links}</td>
     <td>${acts}</td>
-  </tr>`;
+  </tr>${aiRow}`;
+}
+function aiResumo(r){
+  const score = Math.round((r.score_match||0)*100);
+  const part = Number(r.itens_participa)||0, tot = Number(r.itens_total)||0;
+  const modoMap = {
+    total:'todos os itens são fornecidos pela NL Diagnóstica',
+    lote:'há lote(s) que a NL fornece integralmente',
+    produto:'itens específicos do escopo da NL foram identificados'
+  };
+  const modoTxt = modoMap[r.modo_participacao] || '';
+  if(r.status==='sugerido_aceitar'){
+    return `<strong>Recomendado aceitar.</strong> ${part} de ${tot} itens casaram com o catálogo (aderência ${score}%)${modoTxt?`, ${modoTxt}`:''}. Clique para revisar os itens e confirmar a participação.`;
+  }
+  if(r.status==='analisando'){
+    return `<strong>Vale analisar.</strong> ${part} de ${tot} itens casaram com o catálogo (aderência ${score}%)${modoTxt?` — ${modoTxt}`:''}. Abra para revisar: você pode incluir mais itens antes de aceitar.`;
+  }
+  return '';
 }
 function bindRowActions(rows){
-  document.querySelectorAll('#editaisTable [data-act]').forEach(b=>{
-    b.addEventListener('click', ()=>{
-      const id=b.dataset.id;
-      if(b.dataset.act==='view') return openEdital(id);
-      if(b.dataset.act==='accept') return decide(id, b.dataset.lic, 'aceitar');
-      if(b.dataset.act==='reject') return openRejectModal(id, b.dataset.lic);
+  document.querySelectorAll('#editaisTable tr[data-open]').forEach(tr=>{
+    tr.addEventListener('click', (e)=>{
+      if(e.target.closest('a')) return; // não interfere nos links de edital/portal
+      openEdital(tr.dataset.open);
     });
   });
 }
@@ -713,8 +848,10 @@ async function openEdital(id){
       <div><div class="k">Links</div><div class="v">${e.url_edital?`<a href="${esc(e.url_edital)}" target="_blank" rel="noopener">edital ↗</a>`:'—'}</div></div>
     </div>
     <div style="margin-bottom:12px"><div class="k muted">Objeto</div>${txt(e.objeto)||'—'}</div>
-    ${e.justificativa_ia?`<div class="badge" style="margin-bottom:12px">IA: ${txt(e.justificativa_ia)}</div>`:''}
+    ${(!decided && (e.status==='sugerido_aceitar'||e.status==='analisando'))?`<div class="ai-callout ${e.status==='sugerido_aceitar'?'ok':'warn'}" style="margin-bottom:14px"><span class="ai-ico">${e.status==='sugerido_aceitar'?'✅':'🔎'}</span><span>${aiResumo({status:e.status,score_match:e.score_match,itens_participa:items.filter(i=>i.participa).length,itens_total:items.length,modo_participacao:e.modo_participacao})}</span></div>`
+      : (e.justificativa_ia?`<div class="badge" style="margin-bottom:12px">IA: ${txt(e.justificativa_ia)}</div>`:'')}
     <h3 style="margin:6px 0">Itens / lotes</h3>
+    ${!decided?`<div class="modo" style="margin-bottom:8px">Revise os itens abaixo. Use o botão <strong>⇄</strong> para incluir ou remover itens da participação e, ao final, <strong>aceite</strong> ou <strong>recuse</strong> o edital.</div>`:''}
     ${items.length?loteHtml:'<div class="empty">Sem itens.</div>'}
     ${!decided?`<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
       <button class="btn-no" id="edReject">Recusar</button>
@@ -1065,8 +1202,16 @@ function openChat(){
   setTimeout(()=>{ const i=$('#chatInput'); if(i) i.focus(); $('#msgs').scrollTop=$('#msgs').scrollHeight; }, 50);
 }
 function closeChat(){ $('#chatPanel').classList.add('hidden'); $('#chatFab').classList.remove('hidden'); }
+function toggleExpandChat(){
+  const p=$('#chatPanel'); const exp=p.classList.toggle('expanded');
+  const btn=$('#chatExpand');
+  if(btn){ btn.title = exp?'Recolher':'Expandir'; btn.innerHTML = `<i data-lucide="${exp?'minimize-2':'maximize-2'}"></i>`; }
+  if(window.lucide) lucide.createIcons();
+  $('#msgs').scrollTop=$('#msgs').scrollHeight;
+}
 $('#chatFab').addEventListener('click', openChat);
 $('#chatClose').addEventListener('click', closeChat);
+$('#chatExpand').addEventListener('click', toggleExpandChat);
 $('#chatHistoryBtn').addEventListener('click', ()=>{ const s=$('#chatSessions'); s.classList.toggle('hidden'); if(!s.classList.contains('hidden')) loadSessions(); });
 
 async function loadSessions(){
@@ -1088,7 +1233,7 @@ async function openSession(id){
     $('#msgs').innerHTML = msgs.map(m=>{
       const type=m.type==='human'?'u':'a';
       const c=stripCtx(m.content);
-      return `<div class="msg ${type}">${type==='a'?mdLite(c):esc(c)}</div>`;
+      return `<div class="msg ${type}">${type==='a'?mdRender(c):esc(c)}</div>`;
     }).join('') || '<div class="empty">Conversa vazia.</div>';
     $('#msgs').scrollTop=$('#msgs').scrollHeight;
   }catch(e){ /* noop */ }
@@ -1109,7 +1254,7 @@ async function sendChat(){
   try{
     const r=await fetch(`${CONFIG.N8N_BASE}/nldiag-AgentRag`,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({sessionId:curSession,userId:ME.id,userName:ME.full_name,message})});
-    const j=await safeJson(r); thinking.innerHTML=mdLite((j&&j.output)||'(sem resposta)');
+    const j=await safeJson(r); thinking.innerHTML=mdRender((j&&j.output)||'(sem resposta)');
     refreshCurrentView();
   }catch(e){ thinking.innerHTML='Erro: '+esc(e.message); }
   $('#msgs').scrollTop=$('#msgs').scrollHeight; loadSessions();
