@@ -79,6 +79,34 @@ BEGIN
 END;
 $$;
 
+-- ---------- list members (qualquer membro: para selects de responsável etc.) ----------
+DROP FUNCTION IF EXISTS nl_list_members();
+CREATE OR REPLACE FUNCTION nl_list_members()
+RETURNS TABLE(
+  user_id   UUID,
+  full_name TEXT,
+  email     TEXT
+)
+SECURITY DEFINER
+SET search_path = auth, public
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+  IF NOT nl_is_member() THEN
+    RAISE EXCEPTION 'Acesso negado.' USING ERRCODE = '42501';
+  END IF;
+  RETURN QUERY
+    SELECT
+      u.id,
+      COALESCE(NULLIF(u.raw_user_meta_data->>'full_name',''), u.email)::TEXT,
+      u.email::TEXT
+    FROM auth.users u
+    WHERE u.raw_user_meta_data->>'company_name' = 'nldiagnostica'
+    ORDER BY 2;
+END;
+$$;
+
 -- ---------- confirm user (admin-only) ----------
 CREATE OR REPLACE FUNCTION nl_admin_confirm_user(p_user_id UUID)
 RETURNS VOID
@@ -169,6 +197,7 @@ $$;
 GRANT EXECUTE ON FUNCTION nl_is_admin()                            TO authenticated;
 GRANT EXECUTE ON FUNCTION nl_is_member()                           TO authenticated;
 GRANT EXECUTE ON FUNCTION nl_admin_list_users()                    TO authenticated;
+GRANT EXECUTE ON FUNCTION nl_list_members()                        TO authenticated;
 GRANT EXECUTE ON FUNCTION nl_admin_confirm_user(UUID)              TO authenticated;
 GRANT EXECUTE ON FUNCTION nl_admin_update_user(UUID, TEXT, TEXT)   TO authenticated;
 GRANT EXECUTE ON FUNCTION nl_admin_delete_user(UUID)               TO authenticated;
@@ -180,6 +209,7 @@ NOTIFY pgrst, 'reload schema';
 -- DROP FUNCTION IF EXISTS nl_admin_update_user(UUID, TEXT, TEXT);
 -- DROP FUNCTION IF EXISTS nl_admin_confirm_user(UUID);
 -- DROP FUNCTION IF EXISTS nl_admin_list_users();
+-- DROP FUNCTION IF EXISTS nl_list_members();
 -- DROP FUNCTION IF EXISTS nl_is_member();
 -- DROP FUNCTION IF EXISTS nl_is_admin();
 -- NOTIFY pgrst, 'reload schema';

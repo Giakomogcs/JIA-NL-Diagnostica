@@ -60,7 +60,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT * FROM nl_dashboard_editais(\n  NULLIF('{{ $json.body.status || '' }}','')::text,\n  NULLIF('{{ $json.body.uf || '' }}','')::text,\n  NULLIF('{{ $json.body.search || '' }}','')::text,\n  NULL,\n  COALESCE({{ $json.body.limit || 20 }}, 20),\n  COALESCE({{ $json.body.offset || 0 }}, 0)\n);",
+        "query": "SELECT * FROM nl_dashboard_editais(\n  NULLIF('{{ $json.body.status || '' }}','')::text,\n  NULLIF('{{ $json.body.uf || '' }}','')::text,\n  NULLIF('{{ $json.body.search || '' }}','')::text,\n  NULL,\n  COALESCE({{ $json.body.limit || 20 }}, 20),\n  COALESCE({{ $json.body.offset || 0 }}, 0),\n  NULLIF('{{ $json.body.data_de || '' }}','')::date,\n  NULLIF('{{ $json.body.data_ate || '' }}','')::date\n);",
         "options": {}
       },
       "id": "fa0e6a7c-9ed2-4ffd-a975-e089aff136a4",

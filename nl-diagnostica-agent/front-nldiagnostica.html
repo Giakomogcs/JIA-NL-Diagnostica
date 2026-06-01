@@ -367,6 +367,8 @@
           </select>
         </div>
         <div class="f"><label>UF</label><input id="fUf" maxlength="2" placeholder="SP" style="width:70px" /></div>
+        <div class="f"><label>Data licitação (de)</label><input id="fDataDe" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" style="width:150px" /></div>
+        <div class="f"><label>Data licitação (até)</label><input id="fDataAte" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" style="width:150px" /></div>
         <div class="f search"><label>Busca (objeto / órgão / nº)</label><input id="fSearch" placeholder="Buscar..." /></div>
         <div class="f"><label>&nbsp;</label><button class="btn-pri" id="btnFilter">Filtrar</button></div>
         <div class="f"><label>&nbsp;</label><button class="btn-ghost" id="btnPull" title="Buscar novos editais na Effecti">↻ Buscar Effecti</button></div>
@@ -497,6 +499,7 @@ const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, 
 /* ============ state ============ */
 let ME = null;           // { id, email, full_name, role }
 let isAdmin = false;
+let MEMBERS = null;      // cache de usuários para selects de responsável
 let page = 0; const PAGE_SIZE = 25; let totalCount = 0;
 let curSession = null;
 let currentView = 'editais';
@@ -506,6 +509,19 @@ const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=
 const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('pt-BR'); };
 const fmtMoney = v => { const n=Number(v); return (!isFinite(n)||n<=0)?'—':n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); };
+// Datas em formato BR (dd/mm/aaaa) <-> ISO (aaaa-mm-dd) para inputs de texto
+const isoToBr = s => { if(!s) return ''; const m=String(s).slice(0,10).match(/^(\d{4})-(\d{2})-(\d{2})$/); return m?`${m[3]}/${m[2]}/${m[1]}`:''; };
+const brToIso = s => { if(!s) return null; const m=String(s).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if(!m) return null; const iso=`${m[3]}-${m[2]}-${m[1]}`; return isNaN(new Date(iso))?null:iso; };
+// Máscara progressiva dd/mm/aaaa em <input type="text">
+function maskBrDate(inp){
+  if(!inp || inp._brMasked) return; inp._brMasked = true;
+  inp.addEventListener('input', ()=>{
+    let v = inp.value.replace(/\D/g,'').slice(0,8);
+    if(v.length>=5) v = v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+    else if(v.length>=3) v = v.slice(0,2)+'/'+v.slice(2);
+    inp.value = v;
+  });
+}
 // parse defensivo: webhooks n8n podem responder 200 com corpo vazio quando não há dados
 const safeJson = async r => { const t = await r.text(); if(!t || !t.trim()) return null; try{ return JSON.parse(t); }catch(_){ return null; } };
 const stripCtx = s => (s==null?'':String(s)).replace(/^\s*\[CONTEXTO[^\]]*\]\s*/i,'');
@@ -619,7 +635,19 @@ function showApp(){
   if($('#userRole')) $('#userRole').textContent = isAdmin?'Administrador':'Visualização';
   document.querySelectorAll('.admin-only').forEach(b=> b.style.display = isAdmin?'':'none');
   if(window.lucide) lucide.createIcons();
+  initDateFilter();
   switchView('editais');
+}
+
+// Período padrão: de hoje em diante (sem data final) — evita mostrar licitações vencidas
+function initDateFilter(){
+  const de=$('#fDataDe'), ate=$('#fDataAte');
+  if(!de||!ate) return;
+  maskBrDate(de); maskBrDate(ate);
+  if(de.value || ate.value) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  de.value = isoToBr(today.toISOString().slice(0,10));
+  ate.value = '';
 }
 
 $('#loginForm').addEventListener('submit', async e=>{
@@ -689,7 +717,9 @@ async function loadEditais(){
     p_status: $('#fStatus').value || null,
     p_uf: ($('#fUf').value||'').trim().toUpperCase() || null,
     p_search: ($('#fSearch').value||'').trim() || null,
-    p_batch: null, p_limit: PAGE_SIZE, p_offset: page*PAGE_SIZE
+    p_batch: null, p_limit: PAGE_SIZE, p_offset: page*PAGE_SIZE,
+    p_data_de: brToIso($('#fDataDe').value),
+    p_data_ate: brToIso($('#fDataAte').value)
   };
   const { data, error } = await sb.rpc('nl_dashboard_editais', params);
   if(error){ $('#editaisTable').innerHTML = `<div class="empty">Erro: ${esc(error.message)}</div>`; return; }
@@ -758,6 +788,8 @@ function bindRowActions(rows){
   });
 }
 $('#btnFilter').addEventListener('click', ()=>{ page=0; loadEditais(); });
+['fStatus','fDataDe','fDataAte'].forEach(idf=> $('#'+idf).addEventListener('change', ()=>{ page=0; loadEditais(); }));
+$('#fSearch').addEventListener('keydown', e=>{ if(e.key==='Enter'){ page=0; loadEditais(); } });
 $('#prevPage').addEventListener('click', ()=>{ if(page>0){page--; loadEditais();} });
 $('#nextPage').addEventListener('click', ()=>{ page++; loadEditais(); });
 $('#btnPull').addEventListener('click', async ()=>{
@@ -940,12 +972,24 @@ async function changeStage(id, stage){
   const { error } = await sb.rpc('nl_update_gestao', { p_edital_id:id, p_stage:stage });
   if(error){ row.kanban_stage = prev; renderBoard(); toast('Erro ao mover edital: '+error.message,'error'); }
 }
+async function loadMembers(){
+  if(MEMBERS) return MEMBERS;
+  const { data, error } = await sb.rpc('nl_list_members');
+  MEMBERS = error ? [] : (data||[]);
+  return MEMBERS;
+}
 async function openBoardCard(id){
   const { data, error } = await sb.rpc('nl_get_edital', { p_edital_id:id });
   if(error){ toast('Erro: '+error.message,'error'); return; }
   const e = data.edital;
+  await loadMembers();
   const stageOpts = BOARD_STAGES.map(([k,l])=>`<option value="${k}" ${e.kanban_stage===k?'selected':''}>${esc(l)}</option>`).join('');
   const prioOpts = ['alta','media','baixa'].map(p=>`<option value="${p}" ${(e.gestao_prioridade||'media')===p?'selected':''}>${PRIO_LABEL[p]}</option>`).join('');
+  const respAtual = e.gestao_responsavel||'';
+  const respKnown = !respAtual || (MEMBERS||[]).some(m=> m.full_name===respAtual);
+  const respOpts = `<option value="">— Selecione —</option>` +
+    (MEMBERS||[]).map(m=>`<option value="${esc(m.full_name)}" ${m.full_name===respAtual?'selected':''}>${esc(m.full_name)}</option>`).join('') +
+    (respKnown?'':`<option value="${esc(respAtual)}" selected>${esc(respAtual)}</option>`);
   openModal(`<header><strong>Gerir edital ${esc(e.numero_edital||'')}</strong><button class="close">×</button></header>
    <div class="body">
     <div class="kv">
@@ -959,14 +1003,14 @@ async function openBoardCard(id){
     <div class="kv" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
       <div style="background:transparent;border:none;padding:0"><label class="muted">Etapa</label><select id="gStage">${stageOpts}</select></div>
       <div style="background:transparent;border:none;padding:0"><label class="muted">Prioridade</label><select id="gPrio">${prioOpts}</select></div>
-      <div style="background:transparent;border:none;padding:0"><label class="muted">Responsável</label><input id="gResp" value="${esc(e.gestao_responsavel||'')}" placeholder="Nome" /></div>
-      <div style="background:transparent;border:none;padding:0"><label class="muted">Prazo da proposta</label><input id="gPrazo" type="date" value="${esc(e.gestao_prazo||'')}" /></div>
+      <div style="background:transparent;border:none;padding:0"><label class="muted">Responsável</label><select id="gResp">${respOpts}</select></div>
+      <div style="background:transparent;border:none;padding:0"><label class="muted">Prazo da proposta</label><input id="gPrazo" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" value="${esc(isoToBr(e.gestao_prazo)||isoToBr(new Date().toISOString().slice(0,10)))}" /></div>
       <div style="background:transparent;border:none;padding:0"><label class="muted">Valor da proposta (R$)</label><input id="gValor" type="number" step="0.01" min="0" value="${e.gestao_valor_proposta??''}" placeholder="0,00" /></div>
     </div>
     <label class="muted" style="display:block;margin-top:6px">Observações</label>
     <textarea id="gObs" rows="3" placeholder="Anotações de andamento...">${esc(e.gestao_observacoes||'')}</textarea>
     <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:16px">
-      <button class="btn-ghost" id="gDetail">Ver itens / detalhe</button>
+      <button class="btn-ghost" id="gDetail">Salvar e ver itens / detalhe</button>
       <div style="display:flex;gap:8px">
         <button class="btn-ghost" id="gCancel">Cancelar</button>
         <button class="btn-pri" id="gSave">Salvar</button>
@@ -974,16 +1018,24 @@ async function openBoardCard(id){
     </div>
    </div>`);
   if(window.lucide) lucide.createIcons();
+  maskBrDate($('#gPrazo'));
+  const collectGestao = ()=> ({
+    p_edital_id:id, p_stage:$('#gStage').value, p_prioridade:$('#gPrio').value,
+    p_responsavel:$('#gResp').value.trim()||null, p_prazo:brToIso($('#gPrazo').value),
+    p_valor_proposta:$('#gValor').value!==''?Number($('#gValor').value):null,
+    p_observacoes:$('#gObs').value.trim()||null
+  });
   $('#gCancel').onclick = closeModal;
-  $('#gDetail').onclick = ()=> openEdital(id);
+  $('#gDetail').onclick = async ()=>{
+    const btn=$('#gDetail'); btn.disabled=true; const old=btn.textContent; btn.textContent='Salvando...';
+    const { error } = await sb.rpc('nl_update_gestao', collectGestao());
+    if(error){ btn.disabled=false; btn.textContent=old; toast('Erro ao salvar: '+error.message,'error'); return; }
+    loadBoard();
+    openEdital(id);
+  };
   $('#gSave').onclick = async ()=>{
     const btn=$('#gSave'); btn.disabled=true;
-    const { error } = await sb.rpc('nl_update_gestao', {
-      p_edital_id:id, p_stage:$('#gStage').value, p_prioridade:$('#gPrio').value,
-      p_responsavel:$('#gResp').value.trim()||null, p_prazo:$('#gPrazo').value||null,
-      p_valor_proposta:$('#gValor').value!==''?Number($('#gValor').value):null,
-      p_observacoes:$('#gObs').value.trim()||null
-    });
+    const { error } = await sb.rpc('nl_update_gestao', collectGestao());
     btn.disabled=false;
     if(error){ toast('Erro ao salvar: '+error.message,'error'); return; }
     closeModal(); toast('Edital atualizado.','success'); loadBoard();

@@ -359,13 +359,16 @@ $$;
 -- =========================================================
 -- DASHBOARD — listagem com filtros e paginação
 -- =========================================================
+DROP FUNCTION IF EXISTS nl_dashboard_editais(TEXT,TEXT,TEXT,UUID,INT,INT);
 CREATE OR REPLACE FUNCTION nl_dashboard_editais(
   p_status   TEXT  DEFAULT NULL,   -- novo | analisando | sugerido_aceitar | sugerido_recusar | aceito | recusado
   p_uf       TEXT  DEFAULT NULL,
   p_search   TEXT  DEFAULT NULL,   -- busca em objeto/orgao/numero
   p_batch    UUID  DEFAULT NULL,
   p_limit    INT   DEFAULT 50,
-  p_offset   INT   DEFAULT 0
+  p_offset   INT   DEFAULT 0,
+  p_data_de  DATE  DEFAULT NULL,   -- filtra data_abertura >= p_data_de
+  p_data_ate DATE  DEFAULT NULL    -- filtra data_abertura <= p_data_ate
 )
 RETURNS TABLE(
   id UUID, id_licitacao BIGINT, numero_edital TEXT, orgao TEXT, uf TEXT,
@@ -389,6 +392,8 @@ BEGIN
      WHERE (p_status IS NULL OR e.status = p_status)
        AND (p_uf IS NULL OR e.uf = UPPER(p_uf))
        AND (p_batch IS NULL OR e.batch_id = p_batch)
+       AND (p_data_de  IS NULL OR e.data_abertura >= p_data_de::timestamptz)
+       AND (p_data_ate IS NULL OR e.data_abertura <  (p_data_ate::timestamptz + INTERVAL '1 day'))
        AND (p_search IS NULL OR (
               e.objeto ILIKE '%'||p_search||'%'
            OR e.orgao  ILIKE '%'||p_search||'%'
@@ -669,7 +674,7 @@ GRANT EXECUTE ON FUNCTION nl_admin_upsert_catalogo(UUID,TEXT,TEXT,TEXT,TEXT,TEXT
 GRANT EXECUTE ON FUNCTION nl_admin_delete_catalogo(UUID)                                 TO authenticated;
 GRANT EXECUTE ON FUNCTION nl_upsert_edital(JSONB, UUID)                                  TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION nl_match_edital(UUID)                                          TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION nl_dashboard_editais(TEXT,TEXT,TEXT,UUID,INT,INT)              TO authenticated;
+GRANT EXECUTE ON FUNCTION nl_dashboard_editais(TEXT,TEXT,TEXT,UUID,INT,INT,DATE,DATE)    TO authenticated;
 GRANT EXECUTE ON FUNCTION nl_get_edital(UUID)                                            TO authenticated;
 GRANT EXECUTE ON FUNCTION nl_record_decision(UUID,TEXT,TEXT,TEXT,TEXT,UUID)              TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION nl_set_item_participation(UUID,BOOLEAN)                        TO authenticated;
@@ -692,7 +697,7 @@ NOTIFY pgrst, 'reload schema';
 -- DROP FUNCTION IF EXISTS nl_set_item_participation(UUID,BOOLEAN);
 -- DROP FUNCTION IF EXISTS nl_record_decision(UUID,TEXT,TEXT,TEXT,TEXT,UUID);
 -- DROP FUNCTION IF EXISTS nl_get_edital(UUID);
--- DROP FUNCTION IF EXISTS nl_dashboard_editais(TEXT,TEXT,TEXT,UUID,INT,INT);
+-- DROP FUNCTION IF EXISTS nl_dashboard_editais(TEXT,TEXT,TEXT,UUID,INT,INT,DATE,DATE);
 -- DROP FUNCTION IF EXISTS nl_match_edital(UUID);
 -- DROP FUNCTION IF EXISTS nl_kw_match(TEXT,TEXT);
 -- DROP FUNCTION IF EXISTS nl_upsert_edital(JSONB, UUID);
