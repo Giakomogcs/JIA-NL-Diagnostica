@@ -253,6 +253,46 @@
         background: rgba(255, 255, 255, 0.18);
         color: #fff;
       }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        color: #fff;
+        white-space: nowrap;
+      }
+      .status-pill .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #fff;
+        flex-shrink: 0;
+      }
+      .status-pill.online .status-dot {
+        background: #29d07a;
+        box-shadow: 0 0 0 3px rgba(41, 208, 122, 0.3);
+      }
+      .status-pill.offline .status-dot {
+        background: #ff5a5a;
+        box-shadow: 0 0 0 3px rgba(255, 90, 90, 0.3);
+      }
+      .status-pill.checking .status-dot {
+        background: #ffd166;
+        animation: statusPulse 1s ease-in-out infinite;
+      }
+      @keyframes statusPulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.35;
+        }
+      }
       .toggle-sidebar-btn {
         background: rgba(255, 255, 255, 0.14);
         border: 1px solid rgba(255, 255, 255, 0.4);
@@ -578,15 +618,45 @@
       }
       .toolbar {
         display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        align-items: end;
+        flex-direction: column;
+        gap: 14px;
         margin-bottom: 16px;
         background: var(--card);
         border: 1px solid var(--line);
         border-radius: 14px;
-        padding: 14px 16px;
+        padding: 16px 18px;
         box-shadow: var(--shadow);
+      }
+      .toolbar-filters {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+      .toolbar-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+      }
+      .toolbar-actions .spacer {
+        flex: 1;
+      }
+      .toolbar-actions .group-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-right: 2px;
+      }
+      .toolbar-actions .vsep {
+        width: 1px;
+        align-self: stretch;
+        background: var(--line);
+        margin: 2px 2px;
       }
       .toolbar .f {
         display: flex;
@@ -601,6 +671,18 @@
       .toolbar .f.search {
         flex: 1;
         min-width: 200px;
+      }
+      .toolbar .f.chk-field {
+        justify-content: flex-end;
+      }
+      .toolbar .f.chk-field .chk {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        cursor: pointer;
+        font-size: 13px;
+        height: 38px;
       }
       table {
         width: 100%;
@@ -1007,6 +1089,7 @@
       }
       .cp-head strong {
         font-size: 14px;
+        white-space: nowrap;
       }
       .cp-ctx {
         font-size: 10.5px;
@@ -1017,6 +1100,8 @@
         overflow: hidden;
         text-overflow: ellipsis;
         max-width: 130px;
+        min-width: 0;
+        flex-shrink: 1;
       }
       .cp-head .cp-icon {
         margin-left: 0;
@@ -1074,6 +1159,7 @@
       }
       #chatPanel .composer {
         display: flex;
+        align-items: flex-end;
         gap: 8px;
         padding: 12px;
         border-top: 1px solid var(--line);
@@ -1081,7 +1167,17 @@
       }
       #chatPanel .composer textarea {
         resize: none;
+        min-height: 44px;
+        max-height: 140px;
         height: 44px;
+        line-height: 1.4;
+        overflow-y: auto;
+        field-sizing: content;
+      }
+      #chatPanel .composer .btn-pri {
+        flex-shrink: 0;
+        height: 44px;
+        white-space: nowrap;
       }
       .cp-attach {
         display: flex;
@@ -1153,18 +1249,27 @@
       #chatPanel.expanded .msg {
         max-width: 75%;
       }
-      @media (max-width: 768px) {
+      @media (max-width: 520px) {
         #chatPanel {
-          right: 10px;
-          bottom: 10px;
-          width: calc(100vw - 20px);
-          height: calc(100vh - 90px);
+          right: 0;
+          bottom: 0;
+          width: 100vw;
+          max-width: 100vw;
+          height: 100dvh;
+          max-height: 100dvh;
+          border-radius: 0;
         }
         #chatPanel.expanded {
-          width: calc(100vw - 20px);
-          height: calc(100vh - 70px);
-          right: 10px;
-          bottom: 10px;
+          width: 100vw;
+          max-width: 100vw;
+          height: 100dvh;
+          max-height: 100dvh;
+          right: 0;
+          bottom: 0;
+          border-radius: 0;
+        }
+        #chatPanel.expanded .msg {
+          max-width: 88%;
         }
         #chatFab {
           right: 16px;
@@ -1177,6 +1282,8 @@
         border-radius: 14px;
         line-height: 1.55;
         box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
       .msg.u {
         align-self: flex-end;
@@ -1190,7 +1297,7 @@
         background: #fff;
         border: 1px solid var(--line);
         border-bottom-left-radius: 4px;
-        overflow-x: auto;
+        min-width: 0;
       }
       /* markdown renderizado (respostas do assistente) */
       .msg.a > :first-child {
@@ -1277,21 +1384,33 @@
       .msg.a table {
         border-collapse: collapse;
         width: 100%;
-        margin: 8px 0;
+        margin: 0;
         font-size: 12.5px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .md-table-wrap {
+        margin: 8px 0;
+        overflow-x: auto;
+        border-radius: 10px;
+        -webkit-overflow-scrolling: touch;
       }
       .msg.a th,
       .msg.a td {
         border: 1px solid var(--line);
-        padding: 6px 9px;
+        padding: 7px 10px;
         text-align: left;
         vertical-align: top;
+        overflow-wrap: anywhere;
       }
       .msg.a thead th {
         background: var(--pri-soft);
         color: var(--brand2);
         font-weight: 700;
         white-space: nowrap;
+        position: sticky;
+        top: 0;
       }
       .msg.a tbody tr:nth-child(even) {
         background: #fafbfd;
@@ -1571,6 +1690,9 @@
           <div class="wm"><b>NL Diagnóstica</b><small>Editais</small></div>
         </div>
         <div class="right">
+          <span class="status-pill checking" id="healthPill" title="Verificando conexão com o servidor">
+            <span class="status-dot"></span><span id="healthText">Verificando…</span>
+          </span>
           <span class="role-pill" id="userPill"></span>
         </div>
       </header>
@@ -1629,52 +1751,95 @@
             </p>
             <div class="cards" id="statCards"></div>
             <div class="toolbar">
-              <div class="f">
-                <label>Status</label>
-                <select id="fStatus">
-                  <option value="">Todos</option>
-                  <option value="sugerido_aceitar">Sugeridos p/ aceitar</option>
-                  <option value="sugerido_recusar">Sugeridos p/ recusar</option>
-                  <option value="analisando">Para analisar</option>
-                  <option value="aceito">Aceitos</option>
-                  <option value="recusado">Recusados</option>
-                </select>
+              <div class="toolbar-filters">
+                <div class="f">
+                  <label>Status</label>
+                  <select id="fStatus">
+                    <option value="">Todos</option>
+                    <option value="sugerido_aceitar">Sugeridos p/ aceitar</option>
+                    <option value="sugerido_recusar">Sugeridos p/ recusar</option>
+                    <option value="analisando">Para analisar</option>
+                    <option value="aceito">Aceitos</option>
+                    <option value="recusado">Recusados</option>
+                  </select>
+                </div>
+                <div class="f">
+                  <label>UF</label
+                  ><input
+                    id="fUf"
+                    maxlength="2"
+                    placeholder="SP"
+                    style="width: 70px"
+                  />
+                </div>
+                <div class="f search">
+                  <label>Busca (objeto / órgão / nº)</label
+                  ><input id="fSearch" placeholder="Buscar..." />
+                </div>
+                <div class="f">
+                  <label>Ordenar por</label>
+                  <select id="fSort">
+                    <option value="">Relevância</option>
+                    <option value="data_asc">Submissão (mais perto)</option>
+                    <option value="data_desc">Submissão (mais longe)</option>
+                  </select>
+                </div>
+                <div class="f chk-field">
+                  <label
+                    class="chk"
+                    title="Não mostrar editais cuja data de submissão já passou"
+                  >
+                    <input type="checkbox" id="fHideExpired" checked />
+                    Ocultar vencidos
+                  </label>
+                </div>
+                <div class="f">
+                  <label>&nbsp;</label
+                  ><button class="btn-pri" id="btnFilter">Filtrar</button>
+                </div>
               </div>
-              <div class="f">
-                <label>UF</label
-                ><input
-                  id="fUf"
-                  maxlength="2"
-                  placeholder="SP"
-                  style="width: 70px"
-                />
-              </div>
-              <div class="f search">
-                <label>Busca (objeto / órgão / nº)</label
-                ><input id="fSearch" placeholder="Buscar..." />
-              </div>
-              <div class="f">
-                <label>&nbsp;</label
-                ><button class="btn-pri" id="btnFilter">Filtrar</button>
-              </div>
-              <div class="f">
-                <label>&nbsp;</label
-                ><button
+
+              <div class="toolbar-actions">
+                <span class="group-label">Effecti</span>
+                <button
                   class="btn-ghost"
                   id="btnPull"
                   title="Buscar novos editais na Effecti"
                 >
                   ↻ Buscar Effecti
                 </button>
-              </div>
-              <div class="f admin-only">
-                <label>&nbsp;</label
-                ><button
+                <button
                   class="btn-ghost"
+                  id="btnResync"
+                  title="Reenviar à Effecti os editais com decisão ainda não sincronizada"
+                >
+                  ↻ Re-sincronizar
+                </button>
+
+                <span class="vsep"></span>
+                <span class="group-label">Em lote</span>
+                <button
+                  class="btn-no"
+                  id="btnRejectSugeridos"
+                  title="Recusar de uma vez todos os editais sugeridos para recusar"
+                >
+                  Recusar sugeridos
+                </button>
+                <button
+                  class="btn-ghost admin-only"
                   id="btnRematch"
                   title="Reaplica o match do catálogo atual nos editais ainda não decididos"
                 >
                   ↻ Reprocessar análises
+                </button>
+
+                <span class="spacer"></span>
+                <button
+                  class="btn-ghost admin-only"
+                  id="btnDeleteRecusados"
+                  title="Apagar definitivamente todos os editais já recusados"
+                >
+                  🗑 Apagar recusados
                 </button>
               </div>
             </div>
@@ -1979,7 +2144,10 @@
         }
       };
       const stripCtx = (s) =>
-        (s == null ? "" : String(s)).replace(/^\s*\[CONTEXTO[^\]]*\]\s*/i, "");
+        (s == null ? "" : String(s)).replace(
+          /^\s*\[(?:CONTEXTO|P\u00c1GINA|PAGINA)[^\]]*\]\s*/i,
+          "",
+        );
       // remove marcação HTML (ex.: <em>, <mark>) que vem dos portais de busca e normaliza espaços
       const stripTags = (s) =>
         (s == null ? "" : String(s))
@@ -2062,7 +2230,7 @@
               body.push(mdTableRow(lines[i]));
               i++;
             }
-            html +=
+            const tableHtml =
               "<table><thead><tr>" +
               head.map((c) => `<th>${mdInline(c)}</th>`).join("") +
               "</tr></thead><tbody>" +
@@ -2077,6 +2245,7 @@
                 )
                 .join("") +
               "</tbody></table>";
+            html += `<div class="md-table-wrap">${tableHtml}</div>`;
             continue;
           }
           // título
@@ -2208,6 +2377,44 @@
         switchView("editais");
       }
 
+      /* ============ health check (status online/offline) ============ */
+      function setHealth(state) {
+        const pill = $("#healthPill");
+        const txt = $("#healthText");
+        if (!pill || !txt) return;
+        pill.classList.remove("online", "offline", "checking");
+        if (state === "online") {
+          pill.classList.add("online");
+          txt.textContent = "Online";
+          pill.title = "Servidor conectado";
+        } else if (state === "offline") {
+          pill.classList.add("offline");
+          txt.textContent = "Offline";
+          pill.title = "Sem conexão com o servidor";
+        } else {
+          pill.classList.add("checking");
+          txt.textContent = "Verificando…";
+          pill.title = "Verificando conexão com o servidor";
+        }
+      }
+      async function checkHealth() {
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 8000);
+          const r = await fetch(`${CONFIG.N8N_BASE}/nldiag_health`, {
+            method: "GET",
+            signal: ctrl.signal,
+            cache: "no-store",
+          });
+          clearTimeout(t);
+          setHealth(r.ok ? "online" : "offline");
+        } catch (e) {
+          setHealth("offline");
+        }
+      }
+      checkHealth();
+      setInterval(checkHealth, 30000);
+
       $("#loginForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         $("#loginErr").textContent = "";
@@ -2332,6 +2539,8 @@
           p_batch: null,
           p_limit: PAGE_SIZE,
           p_offset: page * PAGE_SIZE,
+          p_sort: $("#fSort").value || null,
+          p_ocultar_vencidos: $("#fHideExpired").checked,
         };
         const { data, error } = await sb.rpc("nl_dashboard_editais", params);
         if (error) {
@@ -2424,6 +2633,101 @@
         page = 0;
         loadEditais();
       });
+      $("#fSort").addEventListener("change", () => {
+        page = 0;
+        loadEditais();
+      });
+      $("#fHideExpired").addEventListener("change", () => {
+        page = 0;
+        loadEditais();
+      });
+      $("#btnRejectSugeridos").addEventListener("click", async () => {
+        const motivoSel = `<div style="margin:4px 0 2px;text-align:left"><label class="muted" style="font-size:12px">Motivo (Effecti)</label><select id="bulkMotivo" style="width:100%;margin-top:4px">${MOTIVOS_EFFECTI.map(
+          (m) => `<option value="${m}">${m.replace(/_/g, " ")}</option>`,
+        ).join("")}</select></div>`;
+        let motivo = "OUTROS";
+        if (
+          !(await confirmDialog(
+            'Recusar de uma vez TODOS os editais com status "Sugeridos p/ recusar"? Esta ação registra a recusa e tenta sincronizar com a Effecti.',
+            {
+              okText: "Recusar todos",
+              danger: true,
+              extraHtml: motivoSel,
+              onConfirm: () => {
+                const s = document.querySelector("#bulkMotivo");
+                if (s) motivo = s.value;
+              },
+            },
+          ))
+        )
+          return;
+        const btn = $("#btnRejectSugeridos");
+        btn.disabled = true;
+        const old = btn.textContent;
+        btn.textContent = "Recusando...";
+        try {
+          const { data, error } = await sb.rpc("nl_reject_sugeridos", {
+            p_motivo_effecti: motivo,
+            p_motivo: "Recusa em lote (sugeridos p/ recusar)",
+            p_uf: ($("#fUf").value || "").trim().toUpperCase() || null,
+          });
+          if (error) throw error;
+          const itens = (data && data.itens) || [];
+          // sincroniza cada um com a Effecti (fire-and-forget)
+          for (const it of itens) {
+            fetch(`${CONFIG.N8N_BASE}/nldiag-effecti-sync`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                idLicitacao: Number(it.id_licitacao),
+                acao: "recusar",
+                motivo: "Recusa em lote (sugeridos p/ recusar)",
+                motivoEffecti: motivo,
+              }),
+            }).catch(() => {});
+          }
+          toast(
+            `${data?.total ?? 0} edital(is) recusado(s).`,
+            "success",
+          );
+          page = 0;
+          loadStats();
+          loadEditais();
+        } catch (e) {
+          toast("Erro ao recusar em lote: " + e.message, "error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = old;
+        }
+      });
+      $("#btnDeleteRecusados").addEventListener("click", async () => {
+        if (
+          !(await confirmDialog(
+            "Apagar DEFINITIVAMENTE todos os editais já recusados? Os itens são removidos; o histórico de decisões (aprendizado) é preservado. Esta ação não pode ser desfeita.",
+            { okText: "Apagar recusados", danger: true },
+          ))
+        )
+          return;
+        const btn = $("#btnDeleteRecusados");
+        btn.disabled = true;
+        const old = btn.textContent;
+        btn.textContent = "Apagando...";
+        try {
+          const { data, error } = await sb.rpc("nl_delete_recusados", {
+            p_uf: ($("#fUf").value || "").trim().toUpperCase() || null,
+          });
+          if (error) throw error;
+          toast(`${data?.removidos ?? 0} edital(is) apagado(s).`, "success");
+          page = 0;
+          loadStats();
+          loadEditais();
+        } catch (e) {
+          toast("Erro ao apagar recusados: " + e.message, "error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = old;
+        }
+      });
       $("#prevPage").addEventListener("click", () => {
         if (page > 0) {
           page--;
@@ -2454,6 +2758,57 @@
           loadEditais();
         }, 4000);
       });
+      $("#btnResync").addEventListener("click", async () => {
+        const btn = $("#btnResync");
+        btn.disabled = true;
+        const old = btn.textContent;
+        btn.textContent = "Sincronizando...";
+        try {
+          const { data, error } = await sb.rpc("nl_pending_sync", {
+            p_uf: ($("#fUf").value || "").trim().toUpperCase() || null,
+          });
+          if (error) throw error;
+          const itens = data || [];
+          if (!itens.length) {
+            toast("Nenhum edital pendente de sincronização.", "success");
+            return;
+          }
+          let ok = 0,
+            fail = 0;
+          for (const it of itens) {
+            try {
+              const resp = await fetch(
+                `${CONFIG.N8N_BASE}/nldiag-effecti-sync`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    idLicitacao: Number(it.id_licitacao),
+                    acao: it.acao,
+                    motivo: it.motivo || "",
+                    motivoEffecti: it.motivo_effecti || "OUTROS",
+                  }),
+                },
+              );
+              if (resp.ok) ok++;
+              else fail++;
+            } catch {
+              fail++;
+            }
+          }
+          toast(
+            `Re-sincronização: ${ok} ok${fail ? `, ${fail} falha(s)` : ""}.`,
+            fail ? "error" : "success",
+          );
+          loadStats();
+          loadEditais();
+        } catch (e) {
+          toast("Erro ao re-sincronizar: " + e.message, "error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = old;
+        }
+      });
       $("#btnRematch").addEventListener("click", async () => {
         if (
           !(await confirmDialog(
@@ -2465,16 +2820,26 @@
         const btn = $("#btnRematch");
         btn.disabled = true;
         const old = btn.textContent;
-        btn.textContent = "Reprocessando...";
         try {
-          const { data, error } = await sb.rpc("nl_rematch_all", {
-            p_only_pending: true,
-          });
-          if (error) throw error;
-          toast(
-            `Reprocessados ${data?.reprocessados ?? 0} editais.`,
-            "success",
-          );
+          // (re)inicia o conjunto-alvo e processa em lotes até concluir,
+          // mantendo cada chamada abaixo do statement timeout do Supabase.
+          await sb.rpc("nl_rematch_reset", { p_only_pending: true });
+          let total = 0;
+          let restantes = Infinity;
+          let guard = 0;
+          while (restantes > 0 && guard < 200) {
+            guard++;
+            const { data, error } = await sb.rpc("nl_rematch_all", {
+              p_only_pending: true,
+              p_limit: 40,
+            });
+            if (error) throw error;
+            total += data?.reprocessados ?? 0;
+            restantes = data?.restantes ?? 0;
+            btn.textContent = `Reprocessando... (${total}${restantes ? ` · faltam ${restantes}` : ""})`;
+            if ((data?.reprocessados ?? 0) === 0) break; // evita loop infinito
+          }
+          toast(`Reprocessados ${total} editais.`, "success");
           loadStats();
           loadEditais();
         } catch (e) {
@@ -3328,7 +3693,7 @@
         $("#chatPanel").classList.remove("hidden");
         $("#chatFab").classList.add("hidden");
         if ($("#chatCtx")) $("#chatCtx").textContent = pageContextLabel();
-        if ($("#msgs").querySelector(".empty")) renderChatEmpty();
+        if (!$("#msgs").querySelector(".msg")) renderChatEmpty();
         if (window.lucide) lucide.createIcons();
         if (!curSession) loadSessions();
         setTimeout(() => {
@@ -3440,12 +3805,14 @@
         if ($("#msgs").querySelector(".empty")) $("#msgs").innerHTML = "";
         $("#msgs").appendChild(el("div", "msg u", esc(txt)));
         $("#chatInput").value = "";
+        $("#chatInput").style.height = "44px";
         $("#msgs").scrollTop = $("#msgs").scrollHeight;
         const thinking = el("div", "msg a", "…");
         $("#msgs").appendChild(thinking);
         $("#msgs").scrollTop = $("#msgs").scrollHeight;
-        // injeta a página atual para o agente considerar o contexto (não é exibido ao usuário)
-        const message = `[PÁGINA: ${pageContextLabel()}] ${txt}`;
+        // contexto da página: vai num campo separado e também prefixado (compat. com o agente).
+        // O título/histórico são limpos no display por stripCtx().
+        const ctx = pageContextLabel();
         try {
           const r = await fetch(`${CONFIG.N8N_BASE}/nldiag-AgentRag`, {
             method: "POST",
@@ -3454,7 +3821,8 @@
               sessionId: curSession,
               userId: ME.id,
               userName: ME.full_name,
-              message,
+              message: `[PÁGINA: ${ctx}] ${txt}`,
+              pageContext: ctx,
             }),
           });
           const j = await safeJson(r);
@@ -3466,7 +3834,13 @@
         $("#msgs").scrollTop = $("#msgs").scrollHeight;
         loadSessions();
       }
+      function autoGrowChatInput() {
+        const i = $("#chatInput");
+        i.style.height = "auto";
+        i.style.height = Math.min(i.scrollHeight, 140) + "px";
+      }
       $("#sendChat").addEventListener("click", sendChat);
+      $("#chatInput").addEventListener("input", autoGrowChatInput);
       $("#chatInput").addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
@@ -3545,6 +3919,7 @@
           openModal(`<div class="body">
       <div class="confirm-ico ${danger ? "danger" : "ask"}">${danger ? "⚠" : "?"}</div>
       <div class="confirm-msg">${esc(message)}</div>
+      ${opts.extraHtml || ""}
       <div class="confirm-actions">
         <button class="btn-ghost" id="cfNo">${esc(cancelText)}</button>
         <button class="${danger ? "btn-no" : "btn-pri"}" id="cfYes">${esc(okText)}</button>
@@ -3558,7 +3933,10 @@
             closeModal();
             resolve(v);
           };
-          $("#cfYes").onclick = () => finish(true);
+          $("#cfYes").onclick = () => {
+            if (opts.onConfirm) opts.onConfirm();
+            finish(true);
+          };
           $("#cfNo").onclick = () => finish(false);
           const bg = $("#modalRoot .modal-bg");
           if (bg)
