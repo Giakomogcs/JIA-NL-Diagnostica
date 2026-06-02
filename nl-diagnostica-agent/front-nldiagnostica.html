@@ -3196,7 +3196,13 @@
           const tmp = supabase.createClient(
             CONFIG.SUPABASE_URL,
             CONFIG.SUPABASE_ANON_KEY,
-            { auth: { storageKey: "nldiag-tmp", persistSession: false, lock: async (_n, _t, fn) => fn() } },
+            {
+              auth: {
+                storageKey: "nldiag-tmp",
+                persistSession: false,
+                lock: async (_n, _t, fn) => fn(),
+              },
+            },
           );
           const { data, error } = await tmp.auth.signUp({
             email,
