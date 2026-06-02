@@ -1690,8 +1690,13 @@
           <div class="wm"><b>NL Diagnóstica</b><small>Editais</small></div>
         </div>
         <div class="right">
-          <span class="status-pill checking" id="healthPill" title="Verificando conexão com o servidor">
-            <span class="status-dot"></span><span id="healthText">Verificando…</span>
+          <span
+            class="status-pill checking"
+            id="healthPill"
+            title="Verificando conexão com o servidor"
+          >
+            <span class="status-dot"></span
+            ><span id="healthText">Verificando…</span>
           </span>
           <span class="role-pill" id="userPill"></span>
         </div>
@@ -1756,8 +1761,12 @@
                   <label>Status</label>
                   <select id="fStatus">
                     <option value="">Todos</option>
-                    <option value="sugerido_aceitar">Sugeridos p/ aceitar</option>
-                    <option value="sugerido_recusar">Sugeridos p/ recusar</option>
+                    <option value="sugerido_aceitar">
+                      Sugeridos p/ aceitar
+                    </option>
+                    <option value="sugerido_recusar">
+                      Sugeridos p/ recusar
+                    </option>
                     <option value="analisando">Para analisar</option>
                     <option value="aceito">Aceitos</option>
                     <option value="recusado">Recusados</option>
@@ -2686,10 +2695,7 @@
               }),
             }).catch(() => {});
           }
-          toast(
-            `${data?.total ?? 0} edital(is) recusado(s).`,
-            "success",
-          );
+          toast(`${data?.total ?? 0} edital(is) recusado(s).`, "success");
           page = 0;
           loadStats();
           loadEditais();

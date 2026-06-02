@@ -40,7 +40,7 @@ Fase 4  Ajustes finos + follow-up Effecti                (iteração)
    - **Parasitologia:** `parasitológico de fezes`, `coproparasitológico`, `protoparasitológico`,
      `coproplus`, `epf`, `coletor de fezes`.
    - **Testes rápidos:** `sars-cov-2`, `covid-19 igg`, `covid-19 igm`, `imunocromatográfico
-     covid`, `antígeno sars`.
+covid`, `antígeno sars`.
 3. Definir lista **global** de `termos_negativos` (numa função/constante, ou tabela
    `nl_match_negativos`): `esponja`, `pinça`, `cateter`, `bisturi`, `glicemia`, `glicose`,
    `hgt`, `vitamina k`, `fator vii`, `fator de coagulação`, `exodontia`, `anestésico`, `óbito`,
@@ -73,6 +73,7 @@ para cada item:
 ```
 
 Decisão do edital:
+
 - `itens_total = 0` → olhar `objeto`: termo forte → `analisando`; senão → `sugerido_recusar`.
 - `v_part = 0` → `sugerido_recusar`.
 - modo `total`/`lote` **com** item forte, ou `score_match ≥ 0.5` com ≥1 forte → `sugerido_aceitar`.
@@ -82,6 +83,7 @@ Decisão do edital:
 - Manter `status` inalterado quando já `aceito`/`recusado` (RF8).
 
 **Verificação (antes de reprocessar tudo):** rodar `nl_match_edital(<id>)` nos casos-controle:
+
 - FP que devem sair: fator de coagulação (RJ), tiras de glicemia (SP), esponja hemostática (MS),
   pinça Kelly (RS), vitamina K veterinária (MG), body bag óbito (BA/SP), hemogasômetro (MG).
 - TP que devem ficar: TP/INR (PE), COPROPLUS (GO), eletroforese (TO), TTPA (PB), COVID Cellex (SP).

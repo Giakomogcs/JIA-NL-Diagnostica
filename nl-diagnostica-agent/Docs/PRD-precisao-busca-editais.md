@@ -24,12 +24,12 @@ Care, Eletroforese capilar, Parasitologia/Coproplus e Testes rápidos imunocroma
 Auditoria de **2026-06-02** (via webhooks `nldiag-tool-stats`, `nldiag-tool-dashboard`,
 `nldiag-tool-edital`) sobre **352 editais** reais:
 
-| Status            | Qtd | %   |
-| ----------------- | --- | --- |
-| sugerido_recusar  | 276 | 78% |
-| sugerido_aceitar  | 50  | 14% |
-| analisando        | 24  | 7%  |
-| aceito            | 2   | —   |
+| Status           | Qtd | %   |
+| ---------------- | --- | --- |
+| sugerido_recusar | 276 | 78% |
+| sugerido_aceitar | 50  | 14% |
+| analisando       | 24  | 7%  |
+| aceito           | 2   | —   |
 
 **Os editais existem** (não há alucinação na tabela — só o agente de chat redige texto).
 O problema está na **precisão da classificação**:
@@ -46,20 +46,20 @@ Varredura item a item dos 50 "aceitar":
 - **~18 falsos positivos (36%)** — itens que **não** são da NL mas casaram por palavra-chave
   genérica:
 
-| Edital (item que casou)                                  | Keyword indevida   | Catálogo errado atribuído          |
-| -------------------------------------------------------- | ------------------ | ---------------------------------- |
-| CONCENTRADO DE FATOR DE COAGULAÇÃO (fator VII, remédio)  | `coagulação`       | Analisador de coagulação           |
-| Tiras reagentes para **glicemia** em comodato            | `comodato`+`reagentes` | Locação/comodato hemostasia    |
-| ESPONJA ESTÉRIL HEMOSTÁTICA ABSORVÍVEL (cirúrgica)       | `coagulação`/`hemostasia` | Analisador de coagulação    |
-| PINÇA CIRÚRGICA KELLY / Pinça hemostática Pean           | `hemostasia`       | Analisador de coagulação           |
-| CATETER para hemostasia                                  | `hemostasia`       | Analisador de coagulação           |
-| VITAMINA K injetável **uso veterinário**                 | `coagulação`       | Analisador de coagulação           |
-| SACO impermeável para **óbito COVID-19** (body bag)      | `covid-19`         | Teste rápido COVID                 |
-| FITA/TIRA HGT **glicemia**                               | `comodato`+`reagentes` | Locação/comodato hemostasia    |
-| REAGENTE para **HEMOGASÔMETRO** (gasometria)             | `comodato`/`reagentes` | hemostasia                       |
-| INDICADOR BIOLÓGICO de esterilização ("teste desafio")   | `teste`            | Teste rápido                       |
-| Exodontia / anestésico odontológico / bisturi bipolar    | `coagulação`/`hemostasia` | Analisador de coagulação        |
-| DESINFETANTE com peróxido                                | (ruído covid)      | Teste rápido                       |
+| Edital (item que casou)                                 | Keyword indevida          | Catálogo errado atribuído   |
+| ------------------------------------------------------- | ------------------------- | --------------------------- |
+| CONCENTRADO DE FATOR DE COAGULAÇÃO (fator VII, remédio) | `coagulação`              | Analisador de coagulação    |
+| Tiras reagentes para **glicemia** em comodato           | `comodato`+`reagentes`    | Locação/comodato hemostasia |
+| ESPONJA ESTÉRIL HEMOSTÁTICA ABSORVÍVEL (cirúrgica)      | `coagulação`/`hemostasia` | Analisador de coagulação    |
+| PINÇA CIRÚRGICA KELLY / Pinça hemostática Pean          | `hemostasia`              | Analisador de coagulação    |
+| CATETER para hemostasia                                 | `hemostasia`              | Analisador de coagulação    |
+| VITAMINA K injetável **uso veterinário**                | `coagulação`              | Analisador de coagulação    |
+| SACO impermeável para **óbito COVID-19** (body bag)     | `covid-19`                | Teste rápido COVID          |
+| FITA/TIRA HGT **glicemia**                              | `comodato`+`reagentes`    | Locação/comodato hemostasia |
+| REAGENTE para **HEMOGASÔMETRO** (gasometria)            | `comodato`/`reagentes`    | hemostasia                  |
+| INDICADOR BIOLÓGICO de esterilização ("teste desafio")  | `teste`                   | Teste rápido                |
+| Exodontia / anestésico odontológico / bisturi bipolar   | `coagulação`/`hemostasia` | Analisador de coagulação    |
+| DESINFETANTE com peróxido                               | (ruído covid)             | Teste rápido                |
 
 ### 2.2 Falsos positivos no "analisando" (~25%)
 
@@ -83,12 +83,12 @@ odontológico e **primer/oligonucleotídeo de PCR** também escaparam para "anal
 
 ## 3. Objetivos e métricas de sucesso
 
-| Objetivo                                              | Métrica                                  | Alvo        |
-| ----------------------------------------------------- | ---------------------------------------- | ----------- |
-| Reduzir falsos positivos no "sugerido_aceitar"        | % de FP na amostra auditada              | ≤ 10%       |
-| Não perder editais pertinentes (recall)               | % de relevantes que caem em "recusar"    | ≤ 5%        |
-| Estabilidade do veredito                              | mesmo item → mesma decisão               | 100%        |
-| Transparência                                         | toda decisão mostra a keyword/termo forte que casou | 100% |
+| Objetivo                                       | Métrica                                             | Alvo  |
+| ---------------------------------------------- | --------------------------------------------------- | ----- |
+| Reduzir falsos positivos no "sugerido_aceitar" | % de FP na amostra auditada                         | ≤ 10% |
+| Não perder editais pertinentes (recall)        | % de relevantes que caem em "recusar"               | ≤ 5%  |
+| Estabilidade do veredito                       | mesmo item → mesma decisão                          | 100%  |
+| Transparência                                  | toda decisão mostra a keyword/termo forte que casou | 100%  |
 
 ## 4. Escopo
 
@@ -115,7 +115,7 @@ odontológico e **primer/oligonucleotídeo de PCR** também escaparam para "anal
 - **RF2 — Termos negativos (bloqueio):** se o item contém termo de outra área, é **descartado**
   mesmo que tenha casado: `esponja`, `pinça`, `cateter`, `bisturi`, `glicemia`, `glicose`,
   `hgt`, `vitamina k`, `fator vii`, `exodontia`, `anestésico`, `óbito`, `body bag`, `saco para
-  óbito`, `hemogasômetro`, `gasometria`, `indicador biológico`, `esterilização`, `primer`,
+óbito`, `hemogasômetro`, `gasometria`, `indicador biológico`, `esterilização`, `primer`,
   `oligonucleotídeo`, `desinfetante`, `uso veterinário`/`veterinário`.
 - **RF3 — Sinal do objeto:** o `objeto` do edital também é cruzado com termos fortes; reforça o
   score, mas **não** decide sozinho.
@@ -139,12 +139,12 @@ odontológico e **primer/oligonucleotídeo de PCR** também escaparam para "anal
 
 ## 7. Riscos
 
-| Risco                                                        | Mitigação                                                       |
-| ----------------------------------------------------------- | -------------------------------------------------------------- |
-| Lista de negativos remover um edital legítimo               | Negativo só bloqueia o **item**, não o edital; validar amostra |
-| Termos fortes muito restritos → cair recall                 | Revisar contra os 26 relevantes da auditoria antes do deploy   |
-| Reprocessar reverter decisões humanas                       | RF8: nunca altera `aceito`/`recusado`                          |
-| Effecti continuar mandando muito ruído na origem            | Follow-up: ajustar perfil de monitoramento na conta Effecti    |
+| Risco                                            | Mitigação                                                      |
+| ------------------------------------------------ | -------------------------------------------------------------- |
+| Lista de negativos remover um edital legítimo    | Negativo só bloqueia o **item**, não o edital; validar amostra |
+| Termos fortes muito restritos → cair recall      | Revisar contra os 26 relevantes da auditoria antes do deploy   |
+| Reprocessar reverter decisões humanas            | RF8: nunca altera `aceito`/`recusado`                          |
+| Effecti continuar mandando muito ruído na origem | Follow-up: ajustar perfil de monitoramento na conta Effecti    |
 
 ## 8. Critérios de aceite
 
