@@ -1,5 +1,5 @@
 -- =============================================
--- NL Diagnostica — 011: re-sincronização com a Effecti
+-- NL Diagnostica — 014: re-sincronização com a Effecti
 --
 -- Adiciona o RPC nl_pending_sync(), que lista os editais já decididos
 -- (aceito/recusado) mas ainda NÃO sincronizados com a Effecti
