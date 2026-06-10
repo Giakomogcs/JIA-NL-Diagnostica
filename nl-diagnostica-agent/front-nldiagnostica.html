@@ -2437,9 +2437,7 @@
               >
                 🧠 Motor de bulas
               </button>
-              <button class="btn-pri" id="btnAddCat">
-                + Adicionar
-              </button>
+              <button class="btn-pri" id="btnAddCat">+ Adicionar</button>
             </div>
             <p class="page-sub">
               O catálogo define o que a empresa oferece.
@@ -2483,7 +2481,12 @@
             <div class="page-head">
               <div class="ph-icon"><i data-lucide="folder-open"></i></div>
               <h2>Documentos (RAG)</h2>
-              <input type="file" id="docFileInput" multiple style="display: none" />
+              <input
+                type="file"
+                id="docFileInput"
+                multiple
+                style="display: none"
+              />
               <button
                 class="btn-ghost"
                 id="btnReindexAll"
@@ -3713,17 +3716,17 @@
             btnST.disabled = true;
             btnST.textContent = "🔬 Analisando… (pode levar 1-2 min)";
             try {
-              const r = await fetch(
-                `${CONFIG.N8N_BASE}/nldiag-super-triagem`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ edital_id: id }),
-                },
-              );
+              const r = await fetch(`${CONFIG.N8N_BASE}/nldiag-super-triagem`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ edital_id: id }),
+              });
               if (!r.ok) throw new Error("HTTP " + r.status);
               await r.json();
-              toast("Super triagem concluída — itens e % de match atualizados.", "success");
+              toast(
+                "Super triagem concluída — itens e % de match atualizados.",
+                "success",
+              );
               openEdital(id);
               loadStats();
               loadEditais();
@@ -3944,7 +3947,10 @@
     <td>${esc(c.linha || "—")}</td><td><strong>${esc(c.descricao)}</strong><div class="modo">${esc(c.finalidade || "")}</div></td>
     <td>${esc(c.tipo)}</td>
     <td>${(c.termos_fortes || []).map((k) => `<span class="badge kw-strong">${esc(k)}</span>`).join(" ") || '<span class="modo">—</span>'}</td>
-    <td>${(c.palavras_chave || []).concat(c.sinonimos || []).map((k) => `<span class="badge">${esc(k)}</span>`).join(" ")}</td>
+    <td>${(c.palavras_chave || [])
+      .concat(c.sinonimos || [])
+      .map((k) => `<span class="badge">${esc(k)}</span>`)
+      .join(" ")}</td>
     <td>${c.ativo ? '<span class="tag sug_a">ativo</span>' : '<span class="tag sug_r">inativo</span>'}</td>
     <td class="row-actions"><button class="btn-ghost" data-edit='${esc(JSON.stringify(c))}'>editar</button><button class="btn-no" data-del="${c.id}">excluir</button></td>
   </tr>`,
@@ -4221,10 +4227,7 @@
           fail = 0;
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          toast(
-            `Enviando ${i + 1}/${files.length}: “${file.name}”…`,
-            "info",
-          );
+          toast(`Enviando ${i + 1}/${files.length}: “${file.name}”…`, "info");
           try {
             const fd = new FormData();
             fd.append("data", file, file.name);
