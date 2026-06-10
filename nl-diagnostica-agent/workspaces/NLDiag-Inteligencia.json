@@ -1,0 +1,923 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## NL Diagnostica — Inteligência (Motor de Bulas + Super Triagem)\n\n**1. POST `/nldiag-catalogo-seed` (MOTOR DE BULAS)** — varre **TODAS** as bulas/documentos do RAG em lotes (texto completo, não amostra), pede ao LLM termos fortes + sinônimos + palavras-chave + **contexto** por linha do catálogo e faz **merge incremental** (`nl_catalogo_merge_termos` — nunca remove). O contexto fica em `nl_catalogo.contexto_bulas` e é usado na Super Triagem. Depois clique em \"↻ Reprocessar análises\".\n\n**2. POST `/nldiag-super-triagem` {edital_id}** — baixa o PDF do edital (`url_edital`), extrai o texto (OCR Azure se for digitalizado), cruza com catálogo (incl. contexto das bulas) + palavras bloqueadas via LLM e grava em `nl_edital.analise_profunda`. O LLM também devolve `itens_avaliacao` (um veredito por item) e `nl_set_analise_profunda` APLICA isso nos itens/lotes (sim/não + % de match) e recalcula o status do edital.\n\n⚠️ Substituir nos nós de OCR: `REPLACE_ME_AZURE_OCR_URL` e `REPLACE_ME_OCR_DEPLOYMENT` (mesmos valores do NLDiag-RAG).\n\nRequer migrations **016**, **017** e **018_match_precisao_super_itens.sql**.",
+        "height": 360,
+        "width": 480
+      },
+      "id": "3c741b85-3604-48f0-9726-b1fc1a2cbd1d",
+      "name": "Sticky Note",
+      "position": [4736, 1936],
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-catalogo-seed",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "438feab4-1d63-4ab9-a5f9-419eabc1d677",
+      "name": "Webhook Seed",
+      "position": [5264, 2000],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "nldiag-catalogo-seed"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  (SELECT COALESCE(jsonb_agg(jsonb_build_object(\n      'linha', c.linha, 'descricao', c.descricao, 'finalidade', c.finalidade,\n      'termos_fortes', c.termos_fortes, 'palavras_chave', c.palavras_chave, 'sinonimos', c.sinonimos)), '[]'::jsonb)\n     FROM nl_catalogo c WHERE c.ativo) AS catalogo,\n  (SELECT COALESCE(jsonb_agg(jsonb_build_object('file_id', m.file_id, 'titulo', m.title)), '[]'::jsonb)\n     FROM nl_document_metadata m\n    WHERE m.source IS DISTINCT FROM 'chat') AS docs;",
+        "options": {}
+      },
+      "id": "a93018af-6f2c-4fb6-af04-f5ef8d4c9f31",
+      "name": "Carregar Catálogo + Docs",
+      "position": [5488, 2000],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Monta os LOTES do motor de bulas: cada lote tem até 2 documentos\n// (texto completo). O catálogo compactado viaja junto em cada item.\nconst j = $input.first().json;\nconst catalogo = j.catalogo || [];\nconst docs = (j.docs || []).filter(d => d.file_id);\nif (!catalogo.length) throw new Error('Catálogo vazio — cadastre as linhas antes de rodar o motor.');\nif (!docs.length) throw new Error('Nenhum documento no RAG. Envie as bulas na aba Documentos antes.');\n\nconst linhas = catalogo.map(c =>\n  `- \"${c.linha}\": ${c.descricao || ''} (finalidade: ${c.finalidade || '-'}). Termos fortes atuais: ${(c.termos_fortes || []).join(', ') || 'nenhum'}.`\n).join('\\n');\n\nconst TAM_LOTE = 2;\nconst out = [];\nfor (let i = 0; i < docs.length; i += TAM_LOTE) {\n  const lote = docs.slice(i, i + TAM_LOTE);\n  out.push({ json: {\n    lote_num: Math.floor(i / TAM_LOTE) + 1,\n    total_lotes: Math.ceil(docs.length / TAM_LOTE),\n    titulos: lote.map(d => d.titulo),\n    // file_id vem do nosso próprio banco; sanitiza mesmo assim\n    file_ids_sql: lote.map(d => `'${String(d.file_id).replace(/'/g, '')}'`).join(','),\n    catalogoLinhas: linhas\n  } });\n}\nreturn out;"
+      },
+      "id": "1ba2f123-af45-462a-b6a5-98e50ba88e9a",
+      "name": "Montar Lotes",
+      "position": [5712, 2000],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "21314a48-3b56-4592-81b6-98e092f830eb",
+      "name": "Loop Lotes",
+      "position": [5904, 2000],
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT m.title AS titulo,\n       LEFT(string_agg(d.content, E'\\n' ORDER BY d.id), 28000) AS texto\n  FROM nl_document_metadata m\n  JOIN nl_documents d ON d.metadata->>'file_id' = m.file_id\n WHERE m.file_id IN ({{ $json.file_ids_sql }})\n GROUP BY m.title;",
+        "options": {}
+      },
+      "id": "b46a595f-17e2-4039-8ca7-e57c8fba11df",
+      "name": "Carregar Texto do Lote",
+      "position": [6128, 2080],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const meta = $('Loop Lotes').first().json;\nconst rows = $input.all().map(i => i.json).filter(r => r.texto && String(r.texto).trim() !== '');\nif (!rows.length) {\n  // lote sem texto (docs vazios) — segue o loop sem chamar o LLM\n  return [{ json: { prompt: '', vazio: true } }];\n}\n\nlet docs = '';\nfor (const r of rows) {\n  docs += `\\n### ${r.titulo || 'documento'}\\n${String(r.texto).replace(/\\s+/g, ' ')}\\n`;\n}\n\nconst prompt = [\n  'Você é especialista em licitações de produtos para diagnóstico in vitro (IVD) no Brasil.',\n  'A NL Diagnóstica tem as linhas de catálogo abaixo. A partir das BULAS fornecidas (texto completo), extraia conhecimento para identificar itens de edital compatíveis com cada linha.',\n  '',\n  'LINHAS DO CATÁLOGO:',\n  meta.catalogoLinhas,\n  '',\n  'REGRAS:',\n  '- termos_fortes: expressões ESPECÍFICAS e decisivas que, sozinhas, indicam que o item é desta linha (nome do exame/analito, metodologia, nome comercial do equipamento, tipo de reagente). Ex.: \"tempo de protrombina\", \"eletroforese capilar\". MÍNIMO de 4 caracteres — siglas curtas (tca, tp, inr, mic, spe) NÃO podem ser termo forte: coloque-as em sinonimos.',\n  '- sinonimos: variações de escrita dos termos fortes (com/sem acento, sigla, nome em inglês usado em editais brasileiros).',\n  '- palavras_chave: termos de apoio que reforçam o match mas não decidem sozinhos.',\n  '- contexto: 2 a 4 frases descrevendo o que ESTAS bulas mostram sobre a linha (exames cobertos, metodologia, equipamentos, marcas, apresentações). Só inclua se as bulas deste lote forem desta linha.',\n  '- NÃO inclua palavras genéricas (reagente, teste, kit, controle, laboratório, equipamento, análise, coleta, amostra, qualidade) nem nomes de doenças isolados.',\n  '- Tudo em minúsculas (exceto o contexto), pt-BR, sem pontuação final nos termos. Use apenas linhas EXATAMENTE como listadas acima.',\n  '- Não repita termos fortes que a linha já possui.',\n  '',\n  'BULAS DESTE LOTE:',\n  docs,\n  '',\n  'Responda APENAS com um array JSON válido, sem markdown, no formato:',\n  '[{\"linha\":\"<linha exata>\",\"termos_fortes\":[\"...\"],\"sinonimos\":[\"...\"],\"palavras_chave\":[\"...\"],\"contexto\":\"...\"}]'\n].join('\\n');\n\nreturn [{ json: { prompt, vazio: false } }];"
+      },
+      "id": "adac9e15-f71f-475e-92b3-abd689baa9ac",
+      "name": "Montar Prompt Lote",
+      "position": [6352, 2080],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.vazio }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "70d29f8c-a0ec-45c5-9607-f0d8b03fa4b2",
+      "name": "Tem texto?",
+      "position": [6576, 2080],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lote sem texto — manda um payload neutro só para fechar o ciclo do loop.\nconst b64 = Buffer.from(JSON.stringify({ linha: '' }), 'utf8').toString('base64');\nreturn [{ json: { linha: '(lote vazio)', b64 } }];"
+      },
+      "id": "06e7857f-d285-49fb-b979-538e36792d53",
+      "name": "Lote Vazio",
+      "position": [6832, 2272],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}"
+      },
+      "id": "c17c44e0-6f3f-4e09-b945-1a03c425b6b4",
+      "name": "LLM Extrair Termos",
+      "position": [6832, 1904],
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "model": "gpt-5.5",
+        "options": {}
+      },
+      "id": "ebc38394-e887-4e4f-9dca-a6278b85a3fa",
+      "name": "Modelo Azure (Seed)",
+      "position": [6832, 2048],
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "xby4FSbCaCnssJxl",
+          "name": "Azure Open AI account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tolerante a falhas: num motor em lotes, um lote ruim NÃO pode derrubar o loop.\nconst raw = String($input.first().json.text || '').trim();\nconst neutro = () => [{ json: { linha: '(sem resultado)', b64: Buffer.from(JSON.stringify({ linha: '' }), 'utf8').toString('base64') } }];\nconst m = raw.match(/\\[[\\s\\S]*\\]/);\nif (!m) return neutro();\nlet arr;\ntry { arr = JSON.parse(m[0]); } catch (e) { return neutro(); }\nif (!Array.isArray(arr) || !arr.length) return neutro();\nconst out = [];\nfor (const it of arr) {\n  if (!it || !it.linha) continue;\n  const payload = {\n    linha: String(it.linha),\n    termos_fortes: Array.isArray(it.termos_fortes) ? it.termos_fortes : [],\n    sinonimos: Array.isArray(it.sinonimos) ? it.sinonimos : [],\n    palavras_chave: Array.isArray(it.palavras_chave) ? it.palavras_chave : [],\n    contexto: typeof it.contexto === 'string' ? it.contexto.trim() : ''\n  };\n  out.push({ json: { linha: payload.linha, b64: Buffer.from(JSON.stringify(payload), 'utf8').toString('base64') } });\n}\nreturn out.length ? out : neutro();"
+      },
+      "id": "031c1c4a-ef34-409e-a43d-497e13aa76bd",
+      "name": "Parse Termos",
+      "position": [7056, 1904],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_catalogo_merge_termos(convert_from(decode('{{ $json.b64 }}','base64'),'utf8')::jsonb) AS resultado;",
+        "options": {}
+      },
+      "id": "0cd3784c-e92c-489e-a000-c876b47b8134",
+      "name": "Merge Catálogo",
+      "position": [7280, 1904],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agrega o resultado de TODOS os lotes do motor (cada iteração do loop\n// é um runIndex diferente do nó 'Merge Catálogo').\nconst porLinha = {};\nlet fortes = 0, sin = 0, chave = 0, contextos = 0, naoEnc = 0, lotes = 0;\nfor (let run = 0; run < 1000; run++) {\n  let items;\n  try { items = $('Merge Catálogo').all(0, run); } catch (e) { break; }\n  if (!items || !items.length) break;\n  lotes++;\n  for (const item of items) {\n    const r = item.json.resultado || item.json;\n    if (!r || !r.linha) continue;\n    if (!r.encontrado) { if (r.linha) naoEnc++; continue; }\n    const f = (r.adicionados_fortes || []).length;\n    const s = (r.adicionados_sinonimos || []).length;\n    const k = (r.adicionados_chave || []).length;\n    fortes += f; sin += s; chave += k;\n    if (r.contexto_adicionado) contextos++;\n    if (f || s || k || r.contexto_adicionado) {\n      const l = (porLinha[r.linha] = porLinha[r.linha] || { linha: r.linha, termos_fortes: [], sinonimos: [] });\n      l.termos_fortes.push(...(r.adicionados_fortes || []));\n      l.sinonimos.push(...(r.adicionados_sinonimos || []));\n    }\n  }\n}\nreturn [{ json: {\n  status: 'ok',\n  lotes_processados: lotes,\n  linhas_atualizadas: Object.keys(porLinha).length,\n  linhas_nao_encontradas: naoEnc,\n  termos_fortes_adicionados: fortes,\n  sinonimos_adicionados: sin,\n  palavras_chave_adicionadas: chave,\n  contextos_adicionados: contextos,\n  detalhe: Object.values(porLinha)\n} }];"
+      },
+      "id": "454f9911-9d44-47d7-ab8c-433439694430",
+      "name": "Resumo Motor",
+      "position": [6128, 1856],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"processando\", \"total_lotes\": {{ $json.total_lotes }}, \"mensagem\": \"Motor de bulas iniciado — termos e contextos são adicionados ao catálogo conforme cada lote conclui.\" }",
+        "options": {}
+      },
+      "id": "f1933858-3ef3-4b6f-bcec-319132e178f5",
+      "name": "Respond Seed",
+      "position": [5904, 1856],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-super-triagem",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "009acd32-a4b2-4c1f-af84-5fcda58df210",
+      "name": "Webhook Super Triagem",
+      "position": [5264, 2576],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "nldiag-super-triagem"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json || {};\nconst body = b.body || b;\nconst id = String(body.edital_id || '').trim();\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {\n  throw new Error('edital_id (uuid) é obrigatório.');\n}\nreturn [{ json: { edital_id: id } }];"
+      },
+      "id": "b2d12826-0c06-43b7-be41-6ac9d39ffbd6",
+      "name": "Extrair edital_id",
+      "position": [5488, 2576],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  (to_jsonb(e) - 'raw' - 'analise_profunda') AS edital,\n  (SELECT COALESCE(jsonb_agg(jsonb_build_object(\n      'id', i.id, 'item', i.item_num, 'lote', i.lote, 'produto', i.produto_licitado,\n      'qtd', i.quantidade, 'unidade', i.unidade, 'participa', i.participa,\n      'match_score', i.match_score) ORDER BY i.item_num), '[]'::jsonb)\n     FROM nl_edital_item i WHERE i.edital_id = e.id) AS itens,\n  (SELECT COALESCE(jsonb_agg(jsonb_build_object(\n      'linha', c.linha, 'descricao', c.descricao, 'finalidade', c.finalidade,\n      'termos_fortes', c.termos_fortes, 'palavras_chave', c.palavras_chave,\n      'sinonimos', c.sinonimos, 'contexto_bulas', c.contexto_bulas)), '[]'::jsonb)\n     FROM nl_catalogo c WHERE c.ativo) AS catalogo,\n  (SELECT COALESCE(jsonb_agg(n.termo), '[]'::jsonb)\n     FROM nl_match_negativo n WHERE n.ativo) AS negativos\nFROM nl_edital e WHERE e.id = '{{ $json.edital_id }}';",
+        "options": {}
+      },
+      "id": "98fc75aa-964a-422b-a761-40180701f513",
+      "name": "Carregar Edital",
+      "position": [5712, 2576],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nif (!j || !j.edital) throw new Error('Edital não encontrado.');\nconst url = String(j.edital.url_edital || '').trim();\nconst has_url = /^https?:\\/\\//i.test(url);\nreturn [{ json: { edital_id: j.edital.id, url, has_url } }];"
+      },
+      "id": "775aea78-af2d-4a5f-8852-85ed54ba4c3e",
+      "name": "Preparar URL",
+      "position": [5936, 2576],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-url",
+              "leftValue": "={{ $json.has_url }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f36fd416-5372-4623-883e-b96b2f4a19d9",
+      "name": "URL de edital?",
+      "position": [6144, 2576],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "68db1618-51b7-4e53-9a01-3d75b8753bea",
+      "name": "Baixar PDF",
+      "position": [6368, 2496],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const bin = $input.item.binary && $input.item.binary.data;\nlet is_pdf = false;\nif (bin) {\n  const mt = (bin.mimeType || '').toLowerCase();\n  const fn = (bin.fileName || '').toLowerCase();\n  is_pdf = mt.includes('pdf') || fn.endsWith('.pdf');\n  if (!is_pdf) {\n    try {\n      const buf = await this.helpers.getBinaryDataBuffer(0, 'data');\n      is_pdf = !!buf && buf.slice(0, 5).toString('latin1').startsWith('%PDF');\n    } catch (e) {}\n  }\n}\nreturn { json: { is_pdf }, binary: $input.item.binary || {} };"
+      },
+      "id": "9638944e-43ff-4774-be75-5a8a6f88c018",
+      "name": "Checar PDF",
+      "position": [6592, 2496],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is-pdf",
+              "leftValue": "={{ $json.is_pdf }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8c72d50e-3d2c-4ad3-8954-1fa614c5fbab",
+      "name": "É PDF?",
+      "position": [6816, 2496],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "46921e3f-c930-4f65-ab1a-c5c39ba9f7ed",
+      "name": "Extrair Texto PDF",
+      "position": [7024, 2416],
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-text",
+              "leftValue": "={{ ($json.text || '').replace(/\\s+/g,'').length }}",
+              "rightValue": 300,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d5b00d61-384f-4470-9f55-d6ed9f6e92e4",
+      "name": "Texto suficiente?",
+      "position": [7248, 2416],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// PDF digitalizado: manda para OCR (Azure OpenAI Responses API).\nconst buffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nif (!buffer || buffer.length > 20 * 1024 * 1024) {\n  return { json: { ocr_body: null } };\n}\nconst b64 = buffer.toString('base64');\nconst ocr_body = {\n  model: 'REPLACE_ME_OCR_DEPLOYMENT',\n  input: [\n    {\n      role: 'user',\n      content: [\n        { type: 'input_text', text: 'Extraia TODO o texto deste edital de licitação em português, preservando a ordem de leitura. Responda apenas com o texto, sem comentários.' },\n        { type: 'input_file', filename: 'edital.pdf', file_data: 'data:application/pdf;base64,' + b64 }\n      ]\n    }\n  ]\n};\nreturn { json: { ocr_body } };"
+      },
+      "id": "06b1f318-c80b-4da1-944b-68cfaa14770a",
+      "name": "Preparar OCR Edital",
+      "position": [7472, 2528],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_ME_AZURE_OCR_URL",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "azureOpenAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.ocr_body) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "0b506fa9-1617-4ce3-b6ef-9f1bd9514c3e",
+      "name": "OCR Edital (Azure)",
+      "position": [7696, 2528],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "5Bz1JT1vCtggicsh",
+          "name": "Azure Open AI account-first"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json || {};\nlet text = '';\ntry {\n  if (Array.isArray(r.output)) {\n    for (const o of r.output) {\n      if (Array.isArray(o.content)) {\n        for (const c of o.content) { if (c.text) text += c.text; }\n      }\n    }\n  }\n  text = text || r.output_text || (r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content) || '';\n} catch (e) {}\nreturn [{ json: { ocr_text: text } }];"
+      },
+      "id": "dd8cdbd1-c85d-4fe8-a17b-bc26236006ea",
+      "name": "Texto do OCR",
+      "position": [7904, 2528],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { texto_edital: '' } }];"
+      },
+      "id": "e31e70f0-1e4d-46fa-a742-07beebfd7d8a",
+      "name": "Sem Texto",
+      "position": [6816, 2736],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Carregar Edital').first().json;\nconst inp = $input.first().json || {};\nlet texto = inp.texto_edital != null ? inp.texto_edital : (inp.text || inp.ocr_text || '');\ntexto = String(texto || '')\n  .replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/g, ' ')\n  .replace(/[ \\t]+/g, ' ')\n  .slice(0, 60000);\nconst e = base.edital;\nconst temTexto = texto.replace(/\\s+/g, '').length >= 300;\n\nconst prompt = [\n  'Você é o analista sênior de licitações da NL Diagnóstica (diagnóstico in vitro: hemostasia, eletroforese, parasitologia, testes rápidos).',\n  'Faça uma SUPER TRIAGEM deste edital: decida se vale participar, com quais itens, e liste exigências e riscos.',\n  'REGRA DE OURO: só é compatível o que for produto/reagente/equipamento de DIAGNÓSTICO IN VITRO do catálogo abaixo. Veículos, obras, mobiliário, informática, medicamentos, serviços e itens hospitalares gerais NUNCA são compatíveis, mesmo que contenham siglas parecidas (ex.: \"SPRINTER TCA\" é um veículo, não um teste de coagulação).',\n  '',\n  'CATÁLOGO DA EMPRESA (só podemos fornecer o que está aqui):',\n  JSON.stringify(base.catalogo),\n  '',\n  'PALAVRAS BLOQUEADAS (itens com estas palavras estão FORA do escopo):',\n  JSON.stringify(base.negativos),\n  '',\n  'EDITAL:',\n  JSON.stringify({\n    numero: e.numero_edital, orgao: e.orgao, uf: e.uf, modalidade: e.modalidade,\n    data_abertura: e.data_abertura, valor_estimado: e.valor_total_estimado,\n    portal: e.portal_nome, fonte: e.fonte, objeto: e.objeto\n  }),\n  '',\n  'ITENS JÁ EXTRAÍDOS:',\n  JSON.stringify(base.itens),\n  '',\n  'IMPORTANTE: em \"itens_avaliacao\" devolva UMA entrada para CADA item de ITENS JÁ EXTRAÍDOS, copiando exatamente o campo \"id\". participa=true só se o item for realmente fornecível pelo catálogo; match é 0-100. Corrija matches errados da triagem automática.',\n  temTexto\n    ? 'TEXTO COMPLETO DO EDITAL (extraído do PDF — use para achar exigências, prazos, condições e itens não capturados acima):\\n' + texto\n    : 'ATENÇÃO: o PDF do edital não pôde ser obtido. Analise apenas com objeto + itens acima e diga isso nos riscos.',\n  '',\n  'Responda APENAS com um objeto JSON válido, sem markdown, neste formato:',\n  '{\"recomendacao\":\"aceitar|recusar|analisar\",\"confianca\":0,\"resumo\":\"síntese em 2-3 frases\",\"itens_avaliacao\":[{\"id\":\"<copie o campo id do item>\",\"participa\":true,\"match\":0,\"linha_catalogo\":\"linha ou null\",\"motivo\":\"curto\"}],\"itens_compativeis\":[{\"item\":\"nº ou lote\",\"produto\":\"descrição curta\",\"linha_catalogo\":\"linha\",\"motivo\":\"por quê\"}],\"exigencias\":[{\"tipo\":\"prazo_entrega|registro_anvisa|amostra|atestado|garantia|visita_tecnica|documentacao|comodato|outros\",\"descricao\":\"...\"}],\"riscos\":[\"...\"],\"proximos_passos\":[\"...\"]}'\n].join('\\n');\n\nreturn [{ json: { prompt, edital_id: e.id, fonte_analise: temTexto ? 'pdf' : 'itens' } }];"
+      },
+      "id": "885bc145-95ad-40ac-b612-04e92fb3c7d9",
+      "name": "Montar Análise",
+      "position": [8128, 2624],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}"
+      },
+      "id": "596e0921-2ddb-4f7c-95d0-c42303a85769",
+      "name": "LLM Super Triagem",
+      "position": [8352, 2624],
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "model": "gpt-5.5",
+        "options": {}
+      },
+      "id": "40a79502-ad92-4bb5-90f3-b88a95ae850c",
+      "name": "Modelo Azure (Triagem)",
+      "position": [8368, 2816],
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "xby4FSbCaCnssJxl",
+          "name": "Azure Open AI account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = String($input.first().json.text || '').trim();\nconst m = raw.match(/\\{[\\s\\S]*\\}/);\nif (!m) throw new Error('LLM não retornou JSON. Início: ' + raw.slice(0, 200));\nlet analise;\ntry { analise = JSON.parse(m[0]); } catch (e) { throw new Error('JSON inválido do LLM: ' + e.message); }\nconst meta = $('Montar Análise').first().json;\nanalise.fonte_analise = meta.fonte_analise;\nanalise.gerado_em = new Date().toISOString();\nconst b64 = Buffer.from(JSON.stringify(analise), 'utf8').toString('base64');\nreturn [{ json: { edital_id: meta.edital_id, analise, b64 } }];"
+      },
+      "id": "55362d5a-131d-4bb1-ab99-0260a8e99e1d",
+      "name": "Parse Análise",
+      "position": [8656, 2624],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_set_analise_profunda('{{ $json.edital_id }}'::uuid, convert_from(decode('{{ $json.b64 }}','base64'),'utf8')::jsonb) AS r;",
+        "options": {}
+      },
+      "id": "8342429c-2fed-46bd-959d-b96695f37c7a",
+      "name": "Salvar Análise",
+      "position": [8864, 2624],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $('Parse Análise').first().json.analise }}",
+        "options": {}
+      },
+      "id": "ae0760a8-dafd-47a4-8512-9a326da3403e",
+      "name": "Respond Triagem",
+      "position": [9088, 2624],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Webhook Seed": {
+      "main": [
+        [
+          {
+            "node": "Carregar Catálogo + Docs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carregar Catálogo + Docs": {
+      "main": [
+        [
+          {
+            "node": "Montar Lotes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Lotes": {
+      "main": [
+        [
+          {
+            "node": "Respond Seed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Lotes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Lotes": {
+      "main": [
+        [
+          {
+            "node": "Resumo Motor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Carregar Texto do Lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carregar Texto do Lote": {
+      "main": [
+        [
+          {
+            "node": "Montar Prompt Lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Prompt Lote": {
+      "main": [
+        [
+          {
+            "node": "Tem texto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem texto?": {
+      "main": [
+        [
+          {
+            "node": "LLM Extrair Termos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lote Vazio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lote Vazio": {
+      "main": [
+        [
+          {
+            "node": "Merge Catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Extrair Termos": {
+      "main": [
+        [
+          {
+            "node": "Parse Termos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Azure (Seed)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Extrair Termos",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Termos": {
+      "main": [
+        [
+          {
+            "node": "Merge Catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Catálogo": {
+      "main": [
+        [
+          {
+            "node": "Loop Lotes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Super Triagem": {
+      "main": [
+        [
+          {
+            "node": "Extrair edital_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair edital_id": {
+      "main": [
+        [
+          {
+            "node": "Carregar Edital",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carregar Edital": {
+      "main": [
+        [
+          {
+            "node": "Preparar URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar URL": {
+      "main": [
+        [
+          {
+            "node": "URL de edital?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "URL de edital?": {
+      "main": [
+        [
+          {
+            "node": "Baixar PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sem Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar PDF": {
+      "main": [
+        [
+          {
+            "node": "Checar PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checar PDF": {
+      "main": [
+        [
+          {
+            "node": "É PDF?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É PDF?": {
+      "main": [
+        [
+          {
+            "node": "Extrair Texto PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sem Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Texto PDF": {
+      "main": [
+        [
+          {
+            "node": "Texto suficiente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto suficiente?": {
+      "main": [
+        [
+          {
+            "node": "Montar Análise",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar OCR Edital",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar OCR Edital": {
+      "main": [
+        [
+          {
+            "node": "OCR Edital (Azure)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR Edital (Azure)": {
+      "main": [
+        [
+          {
+            "node": "Texto do OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto do OCR": {
+      "main": [
+        [
+          {
+            "node": "Montar Análise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sem Texto": {
+      "main": [
+        [
+          {
+            "node": "Montar Análise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Análise": {
+      "main": [
+        [
+          {
+            "node": "LLM Super Triagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Super Triagem": {
+      "main": [
+        [
+          {
+            "node": "Parse Análise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Azure (Triagem)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Super Triagem",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Análise": {
+      "main": [
+        [
+          {
+            "node": "Salvar Análise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Análise": {
+      "main": [
+        [
+          {
+            "node": "Respond Triagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  }
+}

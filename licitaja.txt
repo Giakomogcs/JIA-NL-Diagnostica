@@ -1,0 +1,6 @@
+Segue Acesso ao portal Licita já para acesso ao API
+
+Link: https://www.licitaja.com.br/api_integration.php
+Login: licitacao@nldiagnostica.com.br
+Senha: LICITA2022
+chave api: 3D6DC6F758330DD0BE98C2045B2C3B60

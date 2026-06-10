@@ -1,0 +1,315 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Chave API do Licita Já — IMPORTANTE\n\nA chave é **vinculada ao IP de quem chama a API** (o servidor n8n, não a sua máquina!).\n\n**Passo a passo:**\n1. Chame `GET /webhook/nldiag-meu-ip` → anote o `ip` retornado (IP de saída do n8n).\n2. Acesse https://www.licitaja.com.br/api_integration.php (login em licitaja.txt) e gere a chave **informando esse IP**.\n3. Cole a chave no header `X-API-KEY` do nó **LicitaJa: search**.\n\nSe o painel gerar a chave \"para o IP atual\", gere-a enquanto estiver logado e informe o IP do n8n manualmente (ou abra chamado com o suporte do Licita Já pedindo liberação para o IP do servidor).\n\nErro \"Chave API inválida\" = chave placeholder, chave errada **ou IP não autorizado**.",
+        "height": 400,
+        "width": 440
+      },
+      "id": "d0c5a1b2-1111-4000-8000-000000000001",
+      "name": "Nota: chave API",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-128, 416]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "nldiag-meu-ip",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d0c5a1b2-2222-4000-8000-000000000002",
+      "name": "Webhook: meu IP",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [368, 928],
+      "webhookId": "nldiag-meu-ip"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.ipify.org?format=json",
+        "options": {}
+      },
+      "id": "d0c5a1b2-3333-4000-8000-000000000003",
+      "name": "Descobrir IP de saída",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [592, 928]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ip\": \"{{ $json.ip }}\", \"instrucao\": \"Gere a chave API do Licita Ja autorizando ESTE IP em licitaja.com.br/api_integration.php e cole no header X-API-KEY do no 'LicitaJa: search'.\" }",
+        "options": {}
+      },
+      "id": "d0c5a1b2-4444-4000-8000-000000000004",
+      "name": "Respond IP",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [800, 928]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "b1f201a0-21e8-4d3b-8a54-b04cd8fd5dfb",
+      "name": "Cron Diário 07h30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [368, 496]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nldiag-licitaja-pull",
+        "options": {}
+      },
+      "id": "c8eeac61-0e8e-41da-9c19-697f117ab406",
+      "name": "Webhook: pull manual",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [368, 704],
+      "webhookId": "nldiag-licitaja-pull"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtros do Licita Já. Aceita body { date (YYYYmmdd), keyword, state, page,\n// maxPages } no pull manual; no cron usa a data de hoje (data de catalogação)\n// e as configurações de palavras-chave/estados salvas NA CONTA Licita Já\n// (quando keyword/state ficam vazios, a API usa o perfil do cliente).\nconst body = ($input.first().json && ($input.first().json.body ?? $input.first().json)) || {};\nconst d = new Date();\nconst pad = (n) => String(n).padStart(2, '0');\nconst today = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;\nreturn {\n  date: body.date || today,\n  keyword: body.keyword || '',\n  state: body.state || '',\n  page: Number(body.page ?? 1) || 1,\n  maxPages: Number(body.maxPages ?? 6) || 6\n};"
+      },
+      "id": "7d3a9f02-5c44-4f1e-90af-2a0a6a3f7c11",
+      "name": "Prepare Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [592, 608]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_batch_create('LicitaJa ' || now()::text, jsonb_build_object('date','{{ $json.date }}','keyword','{{ $json.keyword || '' }}','state','{{ $json.state || '' }}','page',{{ $json.page || 1 }})) AS batch_id,\n       '{{ $json.date }}'::text     AS date,\n       '{{ $json.keyword || '' }}'::text AS keyword,\n       '{{ $json.state || '' }}'::text   AS state,\n       {{ $json.page || 1 }}        AS page,\n       {{ $json.maxPages || 6 }}    AS \"maxPages\";",
+        "options": {}
+      },
+      "id": "4f0b7e83-9d11-4ad0-8a37-5a5be0f2e6a2",
+      "name": "Create Batch",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [800, 608],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://www.licitaja.com.br/api/v1/tender/search?page={{ $json.page || 1 }}&items=25&date={{ $json.date }}{{ $json.keyword ? '&keyword=' + encodeURIComponent($json.keyword) : '' }}{{ $json.state ? '&state=' + encodeURIComponent($json.state) : '' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "X-API-KEY",
+              "value": "3D6DC6F758330DD0BE98C2045B2C3B60"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9a4f1c25-7b62-49d3-b8e1-3f9d0c6a8e44",
+      "name": "LicitaJa: search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1024, 608]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Quebra a lista de licitações (results) em itens individuais e codifica em\n// base64 (passagem segura de JSON para o SQL — sem risco de injeção).\nconst resp = $input.first().json || {};\nconst list = resp.results || resp.body?.results || [];\nconst batchId = $('Create Batch').first().json.batch_id;\nif (!Array.isArray(list) || list.length === 0) {\n  return [];\n}\nreturn list.map((t) => ({\n  json: {\n    b64: Buffer.from(JSON.stringify(t), 'utf8').toString('base64'),\n    batch_id: batchId,\n    tenderId: t.tenderId || null\n  }\n}));"
+      },
+      "id": "0c2d8f9e-6a31-47b5-9c0d-8e7f5a2b4d66",
+      "name": "Split & Encode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1248, 528]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Paginação: a resposta traz { page, total_results }. Cada página tem até 25\n// resultados. Continua até cobrir total_results ou atingir maxPages\n// (limite da API Licita Já: 10 requisições/minuto).\nconst resp = $input.first().json || {};\nconst base = $('Create Batch').first().json;\nconst cur = Number(resp.page || base.page || 1);\nconst total = Number(resp.total_results || 0);\nconst maxPages = Number(base.maxPages || 6);\nconst hasNext = cur * 25 < total && cur < maxPages;\nif (!hasNext) return [];\nreturn [{ json: { ...base, page: cur + 1 } }];"
+      },
+      "id": "5e9b3a71-2f80-4c66-a1d4-7b0c9e8f6a33",
+      "name": "Next Page?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1248, 736]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM nl_upsert_edital_licitaja(\n  convert_from(decode('{{ $json.b64 }}','base64'),'UTF8')::jsonb,\n  NULLIF('{{ $json.batch_id }}','')::uuid\n);",
+        "options": {}
+      },
+      "id": "2b6d4e90-8c17-4f52-b3a9-1d5e7c0f9a88",
+      "name": "Upsert Edital",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1472, 528],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nl_match_edital('{{ $json.edital_id }}'::uuid) AS result;",
+        "options": {}
+      },
+      "id": "8f1a5c37-3e92-4d08-a6b5-9c2e0d7f4b11",
+      "name": "Match Edital",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1680, 528],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: meu IP": {
+      "main": [
+        [
+          {
+            "node": "Descobrir IP de saída",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descobrir IP de saída": {
+      "main": [
+        [
+          {
+            "node": "Respond IP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron Diário 07h30": {
+      "main": [
+        [
+          {
+            "node": "Prepare Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: pull manual": {
+      "main": [
+        [
+          {
+            "node": "Prepare Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Filter": {
+      "main": [
+        [
+          {
+            "node": "Create Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Batch": {
+      "main": [
+        [
+          {
+            "node": "LicitaJa: search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LicitaJa: search": {
+      "main": [
+        [
+          {
+            "node": "Split & Encode",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Next Page?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next Page?": {
+      "main": [
+        [
+          {
+            "node": "LicitaJa: search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split & Encode": {
+      "main": [
+        [
+          {
+            "node": "Upsert Edital",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Edital": {
+      "main": [
+        [
+          {
+            "node": "Match Edital",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  }
+}

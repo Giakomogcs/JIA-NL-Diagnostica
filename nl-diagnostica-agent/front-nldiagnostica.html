@@ -74,6 +74,32 @@
       button:disabled:active {
         transform: none;
       }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible {
+        outline: 2px solid var(--pri);
+        outline-offset: 2px;
+      }
+      /* scrollbar discreta */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: #c9d2dd transparent;
+      }
+      *::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      *::-webkit-scrollbar-thumb {
+        background: #c9d2dd;
+        border-radius: 999px;
+      }
+      *::-webkit-scrollbar-thumb:hover {
+        background: #aab6c5;
+      }
+      *::-webkit-scrollbar-track {
+        background: transparent;
+      }
       .btn-pri {
         background: linear-gradient(135deg, var(--pri), var(--pri2));
         color: #fff;
@@ -505,6 +531,70 @@
           display: block;
           pointer-events: auto;
         }
+        /* respiro e empilhamento no mobile */
+        #content {
+          padding: 14px 12px;
+        }
+        .topbar {
+          padding: 0 12px;
+          gap: 8px;
+        }
+        .topbar .logo-mark .wm small {
+          display: none;
+        }
+        .status-pill {
+          display: none;
+        }
+        .cards {
+          gap: 6px;
+        }
+        .stat {
+          padding: 6px 11px 6px 10px;
+        }
+        .page-head {
+          flex-wrap: wrap;
+        }
+        .page-head h2 {
+          font-size: 17px;
+        }
+        .toolbar {
+          padding: 12px;
+        }
+        .toolbar-filters .f {
+          flex: 1 1 calc(50% - 12px);
+          min-width: 130px;
+        }
+        .toolbar .f.search {
+          flex: 1 1 100%;
+        }
+        .toolbar-actions {
+          gap: 8px;
+        }
+        .toolbar-actions .vsep {
+          display: none;
+        }
+        .toolbar-actions button {
+          flex: 1 1 auto;
+        }
+        th,
+        td {
+          padding: 9px 10px;
+        }
+        .modal-bg {
+          padding: 0;
+          align-items: flex-end;
+        }
+        .modal {
+          max-height: 96dvh;
+          border-radius: 16px 16px 0 0;
+        }
+        .kv {
+          grid-template-columns: 1fr 1fr;
+        }
+        .pager {
+          justify-content: center;
+          flex-wrap: wrap;
+        }
       }
       h2 {
         color: var(--txt);
@@ -546,49 +636,47 @@
         line-height: 1.5;
       }
       .cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 14px;
-        margin-bottom: 22px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 18px;
       }
       .stat {
-        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         background: var(--card);
         border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 16px 16px 15px 19px;
+        border-radius: 999px;
+        padding: 7px 14px 7px 12px;
         box-shadow: var(--shadow);
-        overflow: hidden;
         transition:
           transform 0.15s ease,
           box-shadow 0.15s ease;
       }
       .stat::before {
         content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        flex: 0 0 auto;
         background: linear-gradient(180deg, var(--pri), var(--pri2));
       }
       .stat:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 22px rgba(16, 24, 40, 0.1);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(16, 24, 40, 0.1);
       }
       .stat .n {
-        font-size: 28px;
+        font-size: 15px;
         font-weight: 800;
         color: var(--txt);
         line-height: 1;
       }
       .stat .l {
         color: var(--muted);
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-        margin-top: 6px;
+        font-size: 12px;
         font-weight: 600;
+        white-space: nowrap;
       }
       .stat.clickable {
         cursor: pointer;
@@ -692,6 +780,27 @@
         border-radius: 14px;
         overflow: hidden;
         box-shadow: var(--shadow);
+      }
+      /* contêineres de tabela: rolagem horizontal no mobile */
+      #editaisTable,
+      #catTable,
+      #negTable,
+      #docTable,
+      #userTable {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 14px;
+      }
+      #editaisTable table {
+        min-width: 880px;
+      }
+      #catTable table,
+      #docTable table {
+        min-width: 680px;
+      }
+      #negTable table,
+      #userTable table {
+        min-width: 520px;
       }
       th,
       td {
@@ -803,18 +912,18 @@
         background: var(--pri-soft);
       }
       .ai-callout {
-        display: flex;
-        gap: 9px;
-        align-items: flex-start;
-        font-size: 12.5px;
-        line-height: 1.45;
-        border-radius: 10px;
-        padding: 9px 12px;
+        display: inline-flex;
+        gap: 7px;
+        align-items: center;
+        font-size: 12px;
+        line-height: 1.4;
+        border-radius: 999px;
+        padding: 4px 12px;
         border: 1px solid;
       }
       .ai-callout .ai-ico {
         flex: 0 0 auto;
-        font-size: 13px;
+        font-size: 12px;
       }
       .ai-callout.ok {
         background: #f0fdf4;
@@ -828,6 +937,163 @@
       }
       .ai-callout strong {
         font-weight: 700;
+      }
+      /* super triagem */
+      .st-box {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--card);
+        margin: 16px 0 14px;
+        overflow: hidden;
+      }
+      .st-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 11px 14px;
+        background: #f8fafc;
+        border-bottom: 1px solid var(--line);
+      }
+      .st-head h3 {
+        margin: 0;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .st-head .st-meta {
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-left: auto;
+      }
+      .st-verdict {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 12px 14px 0;
+      }
+      .st-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 5px 12px;
+        border: 1px solid;
+      }
+      .st-pill.ok {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+        color: #15603a;
+      }
+      .st-pill.warn {
+        background: #fffbeb;
+        border-color: #fde68a;
+        color: #92600a;
+      }
+      .st-pill.no {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #b91c1c;
+      }
+      .st-conf {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .st-conf .bar {
+        width: 90px;
+        height: 6px;
+        border-radius: 999px;
+        background: #e6eaf0;
+        overflow: hidden;
+      }
+      .st-conf .bar i {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: var(--pri);
+      }
+      .st-resumo {
+        padding: 10px 14px 4px;
+        font-size: 13px;
+        line-height: 1.55;
+        color: var(--txt);
+      }
+      .st-sec {
+        padding: 10px 14px 2px;
+      }
+      .st-sec + .st-sec {
+        border-top: 1px dashed var(--line);
+        margin-top: 8px;
+      }
+      .st-sec .st-t {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .st-sec .st-t .cnt {
+        background: #eef2f7;
+        color: var(--muted);
+        border-radius: 999px;
+        font-size: 10.5px;
+        padding: 1px 7px;
+        font-weight: 600;
+      }
+      .st-list {
+        list-style: none;
+        margin: 0 0 8px;
+        padding: 0;
+      }
+      .st-list li {
+        position: relative;
+        padding: 3px 0 3px 16px;
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+      .st-list li::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 10px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #c9d2dd;
+      }
+      .st-list.risco li::before {
+        background: #f87171;
+      }
+      .st-list.passo li::before {
+        background: #60a5fa;
+      }
+      .st-list.item li::before {
+        background: #34d399;
+      }
+      .st-foot {
+        padding: 9px 14px;
+        border-top: 1px solid var(--line);
+        background: #fbfcfe;
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+      .st-empty {
+        padding: 12px 14px;
+        font-size: 12.5px;
+        color: var(--muted);
+        line-height: 1.5;
       }
       .pager {
         display: flex;
@@ -1128,21 +1394,49 @@
       }
       .cp-sessions {
         flex-shrink: 0;
-        max-height: 160px;
+        max-height: 200px;
         overflow: auto;
         border-bottom: 1px solid var(--line);
         background: #fafbfd;
         padding: 8px;
       }
       .cp-sessions .s {
-        padding: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
         border-radius: 8px;
         cursor: pointer;
         font-size: 12.5px;
         color: var(--muted);
+      }
+      .cp-sessions .s .s-title {
+        flex: 1;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+      .cp-sessions .s .s-del {
+        flex-shrink: 0;
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        padding: 3px;
+        border-radius: 6px;
+        opacity: 0;
+        display: flex;
+        transition: opacity 0.12s;
+      }
+      .cp-sessions .s:hover .s-del {
+        opacity: 1;
+      }
+      .cp-sessions .s .s-del:hover {
+        color: var(--no);
+        background: var(--nobg);
+      }
+      .cp-sessions .s .s-del svg {
+        width: 13px;
+        height: 13px;
       }
       .cp-sessions .s:hover,
       .cp-sessions .s.active {
@@ -1156,14 +1450,23 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
+        scroll-behavior: smooth;
+        background:
+          radial-gradient(
+            ellipse 80% 40% at 50% 0%,
+            #fff7ee 0%,
+            transparent 60%
+          ),
+          #fcfdfe;
       }
       #chatPanel .composer {
         display: flex;
         align-items: flex-end;
         gap: 8px;
-        padding: 12px;
+        padding: 10px 12px;
         border-top: 1px solid var(--line);
         flex-shrink: 0;
+        background: var(--card);
       }
       #chatPanel .composer textarea {
         resize: none;
@@ -1173,11 +1476,55 @@
         line-height: 1.4;
         overflow-y: auto;
         field-sizing: content;
+        border-radius: 14px;
+        padding: 11px 14px;
       }
       #chatPanel .composer .btn-pri {
         flex-shrink: 0;
+        width: 44px;
         height: 44px;
-        white-space: nowrap;
+        padding: 0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #chatPanel .composer .btn-pri svg {
+        width: 18px;
+        height: 18px;
+      }
+      /* indicador "digitando" */
+      .typing {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 0;
+      }
+      .typing i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--pri);
+        opacity: 0.4;
+        animation: typingDot 1.2s ease-in-out infinite;
+      }
+      .typing i:nth-child(2) {
+        animation-delay: 0.18s;
+      }
+      .typing i:nth-child(3) {
+        animation-delay: 0.36s;
+      }
+      @keyframes typingDot {
+        0%,
+        60%,
+        100% {
+          opacity: 0.35;
+          transform: translateY(0);
+        }
+        30% {
+          opacity: 1;
+          transform: translateY(-3px);
+        }
       }
       .cp-attach {
         display: flex;
@@ -1194,6 +1541,39 @@
       }
       .cp-attach:hover {
         color: var(--pri2);
+      }
+      /* boas-vindas do chat */
+      .cp-welcome {
+        text-align: center;
+        padding: 26px 18px 18px;
+      }
+      .cp-welcome .cp-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        margin: 0 auto 10px;
+        background: linear-gradient(135deg, var(--pri), var(--pri2));
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 18px rgba(224, 124, 18, 0.35);
+      }
+      .cp-welcome .cp-avatar svg {
+        width: 26px;
+        height: 26px;
+      }
+      .cp-welcome h4 {
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--txt);
+      }
+      .cp-welcome p {
+        margin: 0;
+        font-size: 12.5px;
+        color: var(--muted);
+        line-height: 1.5;
       }
       /* ações rápidas (placeholder do chat) */
       .cp-quick {
@@ -1277,6 +1657,7 @@
         }
       }
       .msg {
+        position: relative;
         max-width: 85%;
         padding: 11px 15px;
         border-radius: 14px;
@@ -1284,6 +1665,53 @@
         box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
         overflow-wrap: anywhere;
         word-break: break-word;
+        animation: msgIn 0.18s ease;
+      }
+      @keyframes msgIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .msg.err {
+        align-self: flex-start;
+        background: var(--nobg);
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        border-bottom-left-radius: 4px;
+      }
+      .msg .msg-copy {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        color: var(--muted);
+        width: 26px;
+        height: 26px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.12s;
+      }
+      .msg.a:hover .msg-copy {
+        opacity: 1;
+      }
+      .msg .msg-copy:hover {
+        color: var(--pri2);
+        border-color: var(--pri);
+        background: var(--pri-soft);
+      }
+      .msg .msg-copy svg {
+        width: 13px;
+        height: 13px;
       }
       .msg.u {
         align-self: flex-end;
@@ -1456,6 +1884,84 @@
         color: var(--muted);
         margin: 1px 0;
         line-height: 1.6;
+      }
+      /* origem do edital (Effecti / Licita Já) */
+      .badge.src-effecti,
+      .badge.src-licitaja {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 999px;
+        letter-spacing: 0.2px;
+      }
+      .badge.src-effecti::before,
+      .badge.src-licitaja::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .badge.src-effecti {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+      }
+      .badge.src-effecti::before {
+        background: #2563eb;
+      }
+      .badge.src-licitaja {
+        background: #faf5ff;
+        border-color: #e9d5ff;
+        color: #7e22ce;
+      }
+      .badge.src-licitaja::before {
+        background: #9333ea;
+      }
+      /* faixa de fonte na lateral da linha do edital */
+      tr.edital-row > td:first-child,
+      tr.ai-row > td:first-child {
+        border-left: 4px solid transparent;
+      }
+      tr.f-effecti > td:first-child {
+        border-left-color: #2563eb;
+      }
+      tr.f-licitaja > td:first-child {
+        border-left-color: #9333ea;
+      }
+      tr.f-effecti.edital-row:hover td,
+      tr.f-effecti.ai-row:hover td {
+        background: #eff6ff;
+      }
+      tr.f-licitaja.edital-row:hover td,
+      tr.f-licitaja.ai-row:hover td {
+        background: #faf5ff;
+      }
+      /* cards de fonte (contadores clicáveis) */
+      .stat.s-effecti::before {
+        background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+      }
+      .stat.s-licitaja::before {
+        background: linear-gradient(180deg, #a855f7, #7e22ce);
+      }
+      .stat.s-effecti.active {
+        box-shadow:
+          0 0 0 2px #2563eb,
+          var(--shadow);
+      }
+      .stat.s-licitaja.active {
+        box-shadow:
+          0 0 0 2px #9333ea,
+          var(--shadow);
+      }
+      .badge.kw-strong {
+        background: rgba(34, 197, 94, 0.1);
+        border-color: rgba(34, 197, 94, 0.35);
+        color: #15803d;
+        font-weight: 600;
       }
       /* ===== board / kanban (Gerenciar editais) ===== */
       .board-toolbar {
@@ -1781,6 +2287,14 @@
                     style="width: 70px"
                   />
                 </div>
+                <div class="f">
+                  <label>Fonte</label>
+                  <select id="fFonte" style="width: 110px">
+                    <option value="">Todas</option>
+                    <option value="effecti">Effecti</option>
+                    <option value="licitaja">Licita Já</option>
+                  </select>
+                </div>
                 <div class="f search">
                   <label>Busca (objeto / órgão / nº)</label
                   ><input id="fSearch" placeholder="Buscar..." />
@@ -1809,13 +2323,20 @@
               </div>
 
               <div class="toolbar-actions">
-                <span class="group-label">Effecti</span>
+                <span class="group-label">Fontes</span>
                 <button
                   class="btn-ghost"
                   id="btnPull"
                   title="Buscar novos editais na Effecti"
                 >
                   ↻ Buscar Effecti
+                </button>
+                <button
+                  class="btn-ghost"
+                  id="btnPullLicitaja"
+                  title="Buscar novos editais no Licita Já"
+                >
+                  ↻ Buscar Licita Já
                 </button>
                 <button
                   class="btn-ghost"
@@ -1908,16 +2429,53 @@
             <div class="page-head">
               <div class="ph-icon"><i data-lucide="package"></i></div>
               <h2>Catálogo de produtos/serviços</h2>
-              <button class="btn-pri" id="btnAddCat" style="margin-left: auto">
+              <button
+                class="btn-ghost"
+                id="btnSeedCat"
+                style="margin-left: auto"
+                title="Varre TODAS as bulas do RAG em lotes e gera termos fortes, sinônimos, palavras-chave e contexto por linha do catálogo"
+              >
+                🧠 Motor de bulas
+              </button>
+              <button class="btn-pri" id="btnAddCat">
                 + Adicionar
               </button>
             </div>
             <p class="page-sub">
-              O catálogo define o que a empresa oferece. O sistema cruza os
-              itens dos editais com estas palavras-chave para decidir
-              participação.
+              O catálogo define o que a empresa oferece.
+              <strong>Termos fortes</strong> decidem o match (um item só
+              participa se casar pelo menos um); palavras-chave e sinônimos
+              apenas reforçam o score. Após alterar, use
+              <strong>↻ Reprocessar análises</strong> em Buscar editais.
             </p>
             <div id="catTable"></div>
+
+            <div class="page-head" style="margin-top: 36px">
+              <div class="ph-icon"><i data-lucide="ban"></i></div>
+              <h2>Palavras indesejadas (bloqueio)</h2>
+            </div>
+            <p class="page-sub">
+              Qualquer item de edital que contenha uma destas palavras é
+              <strong>bloqueado automaticamente</strong>, mesmo que case um
+              termo forte (ex.: glicemia, esponja, veterinário).
+            </p>
+            <div class="toolbar" style="align-items: flex-end">
+              <div class="toolbar-filters">
+                <div class="f">
+                  <label>Palavra/expressão</label>
+                  <input id="negTermo" placeholder="ex.: vinagre" />
+                </div>
+                <div class="f search">
+                  <label>Motivo (opcional)</label>
+                  <input id="negMotivo" placeholder="por que bloquear?" />
+                </div>
+                <div class="f">
+                  <label>&nbsp;</label>
+                  <button class="btn-pri" id="btnAddNeg">+ Bloquear</button>
+                </div>
+              </div>
+            </div>
+            <div id="negTable"></div>
           </section>
 
           <!-- DOCUMENTOS -->
@@ -1925,7 +2483,7 @@
             <div class="page-head">
               <div class="ph-icon"><i data-lucide="folder-open"></i></div>
               <h2>Documentos (RAG)</h2>
-              <input type="file" id="docFileInput" style="display: none" />
+              <input type="file" id="docFileInput" multiple style="display: none" />
               <button
                 class="btn-ghost"
                 id="btnReindexAll"
@@ -1934,13 +2492,14 @@
                 ↻ Reprocessar pasta
               </button>
               <button class="btn-ghost" id="btnUploadDoc">
-                ⬆ Enviar arquivo
+                ⬆ Enviar arquivos
               </button>
               <button class="btn-pri" id="btnAddDoc">+ Adicionar texto</button>
             </div>
             <p class="page-sub">
-              Base de conhecimento do assistente. Todos os usuários autenticados
-              consultam via IA (sem restrição por equipe).
+              Base de conhecimento do assistente: bulas, catálogos, manuais e
+              regras. Selecione vários arquivos de uma vez (PDF com OCR
+              automático). Todos os usuários autenticados consultam via IA.
             </p>
             <div id="docTable"></div>
           </section>
@@ -2001,9 +2560,11 @@
         </button>
         <textarea
           id="chatInput"
-          placeholder="Escreva sua mensagem..."
+          placeholder="Pergunte sobre editais, catálogo, documentos…"
         ></textarea>
-        <button class="btn-pri" id="sendChat">Enviar</button>
+        <button class="btn-pri" id="sendChat" title="Enviar (Enter)">
+          <i data-lucide="send"></i>
+        </button>
       </div>
     </div>
 
@@ -2456,7 +3017,10 @@
           loadEditais();
         }
         if (v === "gestao") loadBoard();
-        if (v === "catalogo") loadCatalogo();
+        if (v === "catalogo") {
+          loadCatalogo();
+          loadNegativos();
+        }
         if (v === "documentos") loadDocs();
         if (v === "usuarios") loadUsers();
       }
@@ -2519,21 +3083,41 @@
           ["Total", "total", "s-neutro", ""],
         ];
         const cur = $("#fStatus").value;
-        $("#statCards").innerHTML = items
-          .map(([l, k, cls, flt]) => {
-            const clickable = flt !== null;
-            const active = clickable && flt === cur;
-            return (
-              `<div class="stat ${cls}${clickable ? " clickable" : ""}${active ? " active" : ""}"${clickable ? ` data-filter="${flt}"` : ""}>` +
-              `<div class="n">${s[k] ?? 0}</div><div class="l">${l}</div></div>`
-            );
-          })
+        const curFonte = $("#fFonte").value;
+        const fonteCards = [
+          ["via Effecti", "fonte_effecti", "s-effecti", "effecti"],
+          ["via Licita Já", "fonte_licitaja", "s-licitaja", "licitaja"],
+        ]
+          .map(
+            ([l, k, cls, f]) =>
+              `<div class="stat ${cls} clickable${curFonte === f ? " active" : ""}" data-filter-fonte="${f}">` +
+              `<div class="n">${s[k] ?? 0}</div><div class="l">${l}</div></div>`,
+          )
           .join("");
+        $("#statCards").innerHTML =
+          items
+            .map(([l, k, cls, flt]) => {
+              const clickable = flt !== null;
+              const active = clickable && flt === cur;
+              return (
+                `<div class="stat ${cls}${clickable ? " clickable" : ""}${active ? " active" : ""}"${clickable ? ` data-filter="${flt}"` : ""}>` +
+                `<div class="n">${s[k] ?? 0}</div><div class="l">${l}</div></div>`
+              );
+            })
+            .join("") + fonteCards;
         $("#statCards")
           .querySelectorAll(".stat.clickable")
           .forEach((c) =>
             c.addEventListener("click", () => {
-              $("#fStatus").value = c.dataset.filter;
+              if (c.dataset.filterFonte !== undefined) {
+                // alterna o filtro de fonte (clicar de novo limpa)
+                $("#fFonte").value =
+                  $("#fFonte").value === c.dataset.filterFonte
+                    ? ""
+                    : c.dataset.filterFonte;
+              } else {
+                $("#fStatus").value = c.dataset.filter;
+              }
               page = 0;
               loadStats();
               loadEditais();
@@ -2550,6 +3134,7 @@
           p_offset: page * PAGE_SIZE,
           p_sort: $("#fSort").value || null,
           p_ocultar_vencidos: $("#fHideExpired").checked,
+          p_fonte: $("#fFonte").value || null,
         };
         const { data, error } = await sb.rpc("nl_dashboard_editais", params);
         if (error) {
@@ -2564,7 +3149,7 @@
             `<div class="empty">Nenhum edital encontrado.</div>`;
         } else {
           $("#editaisTable").innerHTML = `<table><thead><tr>
-      <th>Nº edital</th><th>Órgão</th><th>UF</th><th>Data licitação</th><th>Modo</th><th>Score</th><th>Status</th><th>Links</th><th></th>
+      <th>Nº edital</th><th>Órgão</th><th>UF</th><th>Data licitação</th><th>Score</th><th>Status</th><th>Fonte</th><th></th>
     </tr></thead><tbody>${rows.map(rowHtml).join("")}</tbody></table>`;
           bindRowActions(rows);
         }
@@ -2588,23 +3173,24 @@
       }
       function rowHtml(r) {
         const score = Math.round((r.score_match || 0) * 100);
-        const links = `${r.url_edital ? `<a class="pill-link" href="${esc(r.url_edital)}" target="_blank" rel="noopener">edital ↗</a>` : ""}${r.url_portal && r.url_portal !== r.url_edital ? ` · <a class="pill-link" href="${esc(r.url_portal)}" target="_blank" rel="noopener">portal ↗</a>` : ""}${r.portal_nome ? `<div class="badge">${esc(r.portal_nome)}</div>` : ""}`;
+        const fonte = r.fonte || "effecti";
+        const fonteBadge = `<div class="badge src-${esc(fonte)}">${fonte === "licitaja" ? "Licita Já" : "Effecti"}</div>`;
+        const links = `${fonteBadge}${r.url_edital ? `<div><a class="pill-link" href="${esc(r.url_edital)}" target="_blank" rel="noopener">edital ↗</a></div>` : ""}`;
         const decided = r.status === "aceito" || r.status === "recusado";
         const acts = decided
           ? `<button class="btn-ghost" data-act="open" data-id="${r.id}">Detalhes</button>`
           : `<button class="btn-pri" data-act="open" data-id="${r.id}">Responder</button>`;
         const ai = aiResumo(r);
         const aiRow = ai
-          ? `<tr class="ai-row" data-open="${r.id}"><td colspan="9">
+          ? `<tr class="ai-row f-${esc(fonte)}" data-open="${r.id}"><td colspan="8">
       <div class="ai-callout ${r.status === "sugerido_aceitar" ? "ok" : "warn"}"><span class="ai-ico">${r.status === "sugerido_aceitar" ? "✅" : "🔎"}</span><span>${ai}</span></div></td></tr>`
           : "";
-        return `<tr class="edital-row${ai ? " has-ai" : ""}" data-open="${r.id}">
+        return `<tr class="edital-row f-${esc(fonte)}${ai ? " has-ai" : ""}" data-open="${r.id}">
     <td><strong>${esc(r.numero_edital || "—")}</strong><div class="modo">${txt(r.modalidade)}</div></td>
     <td>${txt(r.orgao) || "—"}<div class="modo">${txt((r.objeto || "").slice(0, 140)).slice(0, 70)}${stripTags(r.objeto).length > 70 ? "…" : ""}</div></td>
     <td>${esc(r.uf || "—")}</td>
     <td>${fmtDate(r.data_abertura)}</td>
-    <td><span class="modo">${esc(r.modo_participacao || "—")}</span><div class="badge">${r.itens_participa}/${r.itens_total} itens</div></td>
-    <td><div class="score-bar"><i style="width:${score}%"></i></div><span class="modo">${score}%</span></td>
+    <td><div class="score-bar"><i style="width:${score}%"></i></div><span class="modo">${score}% · ${r.itens_participa}/${r.itens_total} itens</span></td>
     <td>${statusTag(r.status)}</td>
     <td>${links}</td>
     <td>${acts}</td>
@@ -2615,16 +3201,16 @@
         const part = Number(r.itens_participa) || 0,
           tot = Number(r.itens_total) || 0;
         const modoMap = {
-          total: "todos os itens são fornecidos pela NL Diagnóstica",
-          lote: "há lote(s) que a NL fornece integralmente",
-          produto: "itens específicos do escopo da NL foram identificados",
+          total: "NL fornece todos os itens",
+          lote: "lote(s) atendido(s) integralmente",
+          produto: "itens do escopo da NL",
         };
         const modoTxt = modoMap[r.modo_participacao] || "";
         if (r.status === "sugerido_aceitar") {
-          return `<strong>Recomendado aceitar.</strong> ${part} de ${tot} itens casaram com o catálogo (aderência ${score}%)${modoTxt ? `, ${modoTxt}` : ""}. Clique para revisar os itens e confirmar a participação.`;
+          return `<strong>Recomendado aceitar</strong> · ${part}/${tot} itens no catálogo${modoTxt ? ` · ${modoTxt}` : ""}`;
         }
         if (r.status === "analisando") {
-          return `<strong>Vale analisar.</strong> ${part} de ${tot} itens casaram com o catálogo (aderência ${score}%)${modoTxt ? ` — ${modoTxt}` : ""}. Abra para revisar: você pode incluir mais itens antes de aceitar.`;
+          return `<strong>Vale analisar</strong> · ${part}/${tot} itens no catálogo · abra para revisar`;
         }
         return "";
       }
@@ -2643,6 +3229,10 @@
         loadEditais();
       });
       $("#fSort").addEventListener("change", () => {
+        page = 0;
+        loadEditais();
+      });
+      $("#fFonte").addEventListener("change", () => {
         page = 0;
         loadEditais();
       });
@@ -2682,8 +3272,10 @@
           });
           if (error) throw error;
           const itens = (data && data.itens) || [];
-          // sincroniza cada um com a Effecti (fire-and-forget)
+          // sincroniza cada um com a Effecti (fire-and-forget);
+          // editais de outras fontes (Licita Já) não têm id_licitacao
           for (const it of itens) {
+            if (!it.id_licitacao) continue;
             fetch(`${CONFIG.N8N_BASE}/nldiag-effecti-sync`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -2764,6 +3356,29 @@
           loadEditais();
         }, 4000);
       });
+      $("#btnPullLicitaja").addEventListener("click", async () => {
+        const btn = $("#btnPullLicitaja");
+        btn.disabled = true;
+        btn.textContent = "Buscando...";
+        try {
+          await fetch(`${CONFIG.N8N_BASE}/nldiag-licitaja-pull`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          toast(
+            "Busca no Licita Já disparada. Os novos editais aparecerão em instantes.",
+          );
+        } catch (e) {
+          toast("Falha ao disparar busca: " + e.message);
+        }
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = "↻ Buscar Licita Já";
+          loadStats();
+          loadEditais();
+        }, 6000);
+      });
       $("#btnResync").addEventListener("click", async () => {
         const btn = $("#btnResync");
         btn.disabled = true;
@@ -2796,7 +3411,9 @@
                   }),
                 },
               );
-              if (resp.ok) ok++;
+              // corpo vazio = execução do n8n morreu no meio (falha silenciosa)
+              const txt = await resp.text();
+              if (resp.ok && txt) ok++;
               else fail++;
             } catch {
               fail++;
@@ -2872,7 +3489,7 @@
         const lic = idLic || (data && data.id_licitacao);
         if (lic) {
           try {
-            await fetch(`${CONFIG.N8N_BASE}/nldiag-effecti-sync`, {
+            const resp = await fetch(`${CONFIG.N8N_BASE}/nldiag-effecti-sync`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -2882,6 +3499,13 @@
                 motivoEffecti: motivoEffecti || "OUTROS",
               }),
             });
+            const txt = await resp.text();
+            if (!resp.ok || !txt) {
+              toast(
+                "Decisão salva, mas a Effecti não confirmou o sync. Use o botão ↻ Re-sincronizar.",
+                "error",
+              );
+            }
           } catch (e) {
             toast(
               "Decisão salva, mas falhou sincronizar com a Effecti: " +
@@ -2892,7 +3516,9 @@
         closeModal();
         toast(
           acao === "aceitar"
-            ? "Edital aceito (favoritado na Effecti)."
+            ? lic
+              ? "Edital aceito (favoritado na Effecti)."
+              : "Edital aceito."
             : "Edital recusado.",
         );
         loadStats();
@@ -2920,6 +3546,68 @@
       }
 
       /* ---- edital detail ---- */
+      function superTriagemBlock(e) {
+        const ap = e.analise_profunda;
+        const btn = `<button class="btn-ghost" id="btnSuperTriagem" style="padding:4px 10px;font-size:12px">🔬 ${ap ? "Refazer" : "Analisar PDF + IA"}</button>`;
+        if (!ap)
+          return `<div class="st-box">
+      <div class="st-head"><h3>🔬 Super triagem</h3>${btn}</div>
+      <div class="st-empty">Baixa o PDF do edital, lê o conteúdo completo (com OCR se for digitalizado) e cruza com o catálogo e as palavras bloqueadas. O texto é usado só na análise — não entra na base de documentos.</div></div>`;
+        const recMap = {
+          aceitar: ["ok", "✅", "Recomenda aceitar"],
+          recusar: ["no", "⛔", "Recomenda recusar"],
+          analisar: ["warn", "🔎", "Requer análise humana"],
+        };
+        const [cls, ico, lbl] = recMap[ap.recomendacao] || [
+          "warn",
+          "🔎",
+          ap.recomendacao || "—",
+        ];
+        // confiança pode vir 0..1 ou 0..100 — normaliza para %
+        const confRaw = Number(ap.confianca) || 0;
+        const conf = Math.max(
+          0,
+          Math.min(100, Math.round(confRaw <= 1 ? confRaw * 100 : confRaw)),
+        );
+        const li = (s) => `<li>${s}</li>`;
+        const sec = (titulo, icone, itensHtml, n, listCls = "") =>
+          itensHtml
+            ? `<div class="st-sec"><div class="st-t">${icone} ${titulo}<span class="cnt">${n}</span></div><ul class="st-list ${listCls}">${itensHtml}</ul></div>`
+            : "";
+        const itensArr = ap.itens_compativeis || [];
+        const itens = itensArr
+          .map((i) =>
+            li(
+              `<strong>${esc(i.item || "")}</strong> ${esc(i.produto || "")} — <span class="tag sug_a">${esc(i.linha_catalogo || "")}</span> <span class="muted">${esc(i.motivo || "")}</span>`,
+            ),
+          )
+          .join("");
+        const exigArr = ap.exigencias || [];
+        const exig = exigArr
+          .map((x) =>
+            li(
+              `<span class="badge">${esc((x.tipo || "outros").replace(/_/g, " "))}</span> ${esc(x.descricao || "")}`,
+            ),
+          )
+          .join("");
+        const riscosArr = ap.riscos || [];
+        const riscos = riscosArr.map((r) => li(esc(r))).join("");
+        const passosArr = ap.proximos_passos || [];
+        const passos = passosArr.map((p) => li(esc(p))).join("");
+        return `<div class="st-box">
+      <div class="st-head"><h3>🔬 Super triagem</h3>${btn}<span class="st-meta">${ap.fonte_analise === "pdf" ? "📄 PDF completo do edital" : "⚠️ objeto + itens (PDF indisponível)"} · ${fmtDate(e.analise_profunda_at)}</span></div>
+      <div class="st-verdict">
+        <span class="st-pill ${cls}">${ico} ${lbl}</span>
+        <span class="st-conf"><span class="bar"><i style="width:${conf}%"></i></span>${conf}% de confiança</span>
+      </div>
+      ${ap.resumo ? `<div class="st-resumo">${esc(ap.resumo)}</div>` : ""}
+      ${sec("Itens compatíveis", "🧪", itens, itensArr.length, "item")}
+      ${sec("Exigências do edital", "📋", exig, exigArr.length)}
+      ${sec("Riscos", "⚠️", riscos, riscosArr.length, "risco")}
+      ${sec("Próximos passos", "🧭", passos, passosArr.length, "passo")}
+      <div class="st-foot">Análise gerada por IA a partir do edital — revise antes de decidir.</div>
+    </div>`;
+      }
       async function openEdital(id) {
         const { data, error } = await sb.rpc("nl_get_edital", {
           p_edital_id: id,
@@ -2973,7 +3661,7 @@
             return `${cov}<table style="margin-bottom:14px"><thead><tr><th>Item</th><th>Produto licitado</th><th>Qtd</th><th>Catálogo</th><th>Match</th><th>Participa</th></tr></thead><tbody>${rows}</tbody></table>`;
           })
           .join("");
-        openModal(`<header><strong>Edital ${esc(e.numero_edital || "")}</strong> ${statusTag(e.status)}<button class="close">×</button></header>
+        openModal(`<header><strong>Edital ${esc(e.numero_edital || "")}</strong> <span class="badge src-${esc(e.fonte || "effecti")}">${(e.fonte || "effecti") === "licitaja" ? "Licita Já" : "Effecti"}</span> ${statusTag(e.status)}<button class="close">×</button></header>
    <div class="body">
     <div class="kv">
       <div><div class="k">Órgão</div><div class="v">${txt(e.orgao) || "—"}</div></div>
@@ -2993,6 +3681,7 @@
           ? `<div class="badge" style="margin-bottom:12px">IA: ${txt(e.justificativa_ia)}</div>`
           : ""
     }
+    ${superTriagemBlock(e)}
     <h3 style="margin:6px 0">Itens / lotes</h3>
     ${!decided ? `<div class="modo" style="margin-bottom:8px">Revise os itens abaixo. Use o botão <strong>⇄</strong> para incluir ou remover itens da participação e, ao final, <strong>aceite</strong> ou <strong>recuse</strong> o edital.</div>` : ""}
     ${items.length ? loteHtml : '<div class="empty">Sem itens.</div>'}
@@ -3018,6 +3707,32 @@
           $("#edAccept").onclick = () => decide(id, e.id_licitacao, "aceitar");
           $("#edReject").onclick = () => openRejectModal(id, e.id_licitacao);
         }
+        const btnST = $("#btnSuperTriagem");
+        if (btnST)
+          btnST.onclick = async () => {
+            btnST.disabled = true;
+            btnST.textContent = "🔬 Analisando… (pode levar 1-2 min)";
+            try {
+              const r = await fetch(
+                `${CONFIG.N8N_BASE}/nldiag-super-triagem`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ edital_id: id }),
+                },
+              );
+              if (!r.ok) throw new Error("HTTP " + r.status);
+              await r.json();
+              toast("Super triagem concluída — itens e % de match atualizados.", "success");
+              openEdital(id);
+              loadStats();
+              loadEditais();
+            } catch (err) {
+              toast("Erro na super triagem: " + err.message, "error");
+              btnST.disabled = false;
+              btnST.textContent = "🔬 Analisar PDF + IA";
+            }
+          };
       }
 
       /* ============ GESTAO (KANBAN) ============ */
@@ -3079,8 +3794,9 @@
           : "";
         const val =
           Number(r.gestao_valor_proposta || r.valor_total_estimado) || 0;
+        const fonte = r.fonte || "effecti";
         return `<div class="b-card prio-${prio}" draggable="true" data-id="${r.id}" data-stage="${r.kanban_stage}">
-    <div class="bc-top"><span class="bc-num">${esc(r.numero_edital || "—")}</span><span class="prio-pill ${prio}" style="margin-left:auto">${PRIO_LABEL[prio]}</span></div>
+    <div class="bc-top"><span class="bc-num">${esc(r.numero_edital || "—")}</span><span class="badge src-${esc(fonte)}" style="font-size:9.5px;padding:1px 7px">${fonte === "licitaja" ? "Licita Já" : "Effecti"}</span><span class="prio-pill ${prio}" style="margin-left:auto">${PRIO_LABEL[prio]}</span></div>
     <div class="bc-org">${txt(r.orgao) || "—"}${r.uf ? ` · ${esc(r.uf)}` : ""}</div>
     <div class="bc-meta">${prazoHtml}${val > 0 ? `<span class="badge">${fmtMoney(val)}</span>` : ""}${resp}</div>
   </div>`;
@@ -3227,14 +3943,15 @@
             (c) => `<tr>
     <td>${esc(c.linha || "—")}</td><td><strong>${esc(c.descricao)}</strong><div class="modo">${esc(c.finalidade || "")}</div></td>
     <td>${esc(c.tipo)}</td>
-    <td>${(c.palavras_chave || []).map((k) => `<span class="badge">${esc(k)}</span>`).join(" ")}</td>
+    <td>${(c.termos_fortes || []).map((k) => `<span class="badge kw-strong">${esc(k)}</span>`).join(" ") || '<span class="modo">—</span>'}</td>
+    <td>${(c.palavras_chave || []).concat(c.sinonimos || []).map((k) => `<span class="badge">${esc(k)}</span>`).join(" ")}</td>
     <td>${c.ativo ? '<span class="tag sug_a">ativo</span>' : '<span class="tag sug_r">inativo</span>'}</td>
     <td class="row-actions"><button class="btn-ghost" data-edit='${esc(JSON.stringify(c))}'>editar</button><button class="btn-no" data-del="${c.id}">excluir</button></td>
   </tr>`,
           )
           .join("");
         $("#catTable").innerHTML = rows
-          ? `<table><thead><tr><th>Linha</th><th>Descrição</th><th>Tipo</th><th>Palavras-chave</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+          ? `<table><thead><tr><th>Linha</th><th>Descrição</th><th>Tipo</th><th>Termos fortes</th><th>Palavras de apoio</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
           : '<div class="empty">Catálogo vazio.</div>';
         document.querySelectorAll("#catTable [data-del]").forEach(
           (b) =>
@@ -3259,6 +3976,38 @@
           );
       }
       $("#btnAddCat").addEventListener("click", () => openCatModal(null));
+      $("#btnSeedCat").addEventListener("click", async () => {
+        if (
+          !(await confirmDialog(
+            "Rodar o motor de bulas? Ele varre TODAS as bulas do RAG (texto completo, em lotes) e gera termos fortes, sinônimos, palavras-chave e contexto por linha do catálogo. Nada é removido — só adiciona.",
+            { okText: "Rodar motor" },
+          ))
+        )
+          return;
+        const btn = $("#btnSeedCat");
+        btn.disabled = true;
+        const old = btn.textContent;
+        btn.textContent = "🧠 Processando bulas… (pode levar vários minutos)";
+        try {
+          const r = await fetch(`${CONFIG.N8N_BASE}/nldiag-catalogo-seed`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          const j = await r.json();
+          toast(
+            `Motor de bulas iniciado: ${j.total_lotes ?? "?"} lote(s) em processamento. Os termos e contextos vão sendo adicionados ao catálogo — recarregue em alguns minutos e use “↻ Reprocessar análises”.`,
+            "success",
+          );
+          loadCatalogo();
+        } catch (e2) {
+          toast("Erro no motor de bulas: " + e2.message, "error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = old;
+        }
+      });
       function openCatModal(c) {
         c = c || {};
         openModal(`<header><strong>${c.id ? "Editar" : "Novo"} item de catálogo</strong><button class="close">×</button></header><div class="body">
@@ -3269,7 +4018,9 @@
       <div style="background:none;border:none;padding:0"><label class="muted">Ativo</label><select id="cA"><option value="true" ${c.ativo !== false ? "selected" : ""}>Sim</option><option value="false" ${c.ativo === false ? "selected" : ""}>Não</option></select></div>
     </div>
     <label class="muted" style="margin-top:10px;display:block">Finalidade de uso</label><input id="cF" value="${esc(c.finalidade || "")}" />
-    <label class="muted" style="margin-top:10px;display:block">Palavras-chave (separadas por vírgula)</label>
+    <label class="muted" style="margin-top:10px;display:block">Termos fortes (decidem o match — separados por vírgula)</label>
+    <input id="cTF" value="${esc((c.termos_fortes || []).join(", "))}" placeholder="ex.: tempo de protrombina, ttpa, coagulômetro" />
+    <label class="muted" style="margin-top:10px;display:block">Palavras-chave de apoio (reforçam o score — vírgula)</label>
     <input id="cK" value="${esc((c.palavras_chave || []).join(", "))}" />
     <label class="muted" style="margin-top:10px;display:block">Sinônimos (vírgula)</label>
     <input id="cS" value="${esc((c.sinonimos || []).join(", "))}" />
@@ -3291,6 +4042,7 @@
             p_finalidade: $("#cF").value.trim(),
             p_palavras_chave: split($("#cK").value),
             p_sinonimos: split($("#cS").value),
+            p_termos_fortes: split($("#cTF").value),
             p_marca: null,
             p_ncm: null,
             p_registro_anvisa: null,
@@ -3304,6 +4056,76 @@
           loadCatalogo();
         };
       }
+
+      /* ---- palavras indesejadas (bloqueio global do match) ---- */
+      async function loadNegativos() {
+        const { data, error } = await sb.rpc("nl_list_negativos");
+        if (error) {
+          $("#negTable").innerHTML =
+            `<div class="empty">Erro: ${esc(error.message)}</div>`;
+          return;
+        }
+        const rows = (data || [])
+          .map(
+            (n) => `<tr>
+    <td><strong>${esc(n.termo)}</strong></td>
+    <td>${esc(n.motivo || "—")}</td>
+    <td>${n.ativo ? '<span class="tag sug_a">ativo</span>' : '<span class="tag sug_r">inativo</span>'}</td>
+    <td class="row-actions"><button class="btn-no" data-delneg="${esc(n.termo)}">remover</button></td>
+  </tr>`,
+          )
+          .join("");
+        $("#negTable").innerHTML = rows
+          ? `<table><thead><tr><th>Palavra/expressão</th><th>Motivo</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+          : '<div class="empty">Nenhuma palavra bloqueada.</div>';
+        document.querySelectorAll("#negTable [data-delneg]").forEach(
+          (b) =>
+            (b.onclick = async () => {
+              if (
+                await confirmDialog(
+                  `Remover o bloqueio da palavra “${b.dataset.delneg}”?`,
+                  { okText: "Remover" },
+                )
+              ) {
+                const { error: e2 } = await sb.rpc("nl_admin_delete_negativo", {
+                  p_termo: b.dataset.delneg,
+                });
+                if (e2) {
+                  toast("Erro: " + e2.message, "error");
+                  return;
+                }
+                toast("Palavra removida do bloqueio.", "success");
+                loadNegativos();
+              }
+            }),
+        );
+      }
+      $("#btnAddNeg").addEventListener("click", async () => {
+        const termo = $("#negTermo").value.trim();
+        if (!termo) {
+          toast("Informe a palavra a bloquear.");
+          return;
+        }
+        const { error } = await sb.rpc("nl_admin_upsert_negativo", {
+          p_termo: termo,
+          p_motivo: $("#negMotivo").value.trim() || null,
+          p_ativo: true,
+        });
+        if (error) {
+          toast("Erro: " + error.message, "error");
+          return;
+        }
+        $("#negTermo").value = "";
+        $("#negMotivo").value = "";
+        toast(
+          `“${termo}” bloqueada. Use “↻ Reprocessar análises” para reaplicar.`,
+          "success",
+        );
+        loadNegativos();
+      });
+      $("#negTermo").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") $("#btnAddNeg").click();
+      });
 
       /* ============ DOCUMENTOS (RAG) ============ */
       let docsBusy = false;
@@ -3385,31 +4207,43 @@
             `<div class="empty">RAG indisponível: ${esc(e.message)}</div>`;
         }
       }
-      /* enviar arquivo real (upload unitário; substitui se mesmo nome) */
+      /* enviar arquivos reais (upload múltiplo; substitui se mesmo nome) */
       $("#btnUploadDoc").addEventListener("click", () =>
         $("#docFileInput").click(),
       );
       $("#docFileInput").addEventListener("change", async (e) => {
-        const file = e.target.files[0];
+        const files = Array.from(e.target.files || []);
         e.target.value = "";
-        if (!file) return;
+        if (!files.length) return;
         if (docsBusy) return;
         setDocsBusy(true);
-        toast(`Enviando "${file.name}"…`, "info");
-        try {
-          const fd = new FormData();
-          fd.append("data", file, file.name);
-          const r = await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-upload`, {
-            method: "POST",
-            body: fd,
-          });
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          toast("Arquivo enviado e indexado.", "success");
-          setTimeout(loadDocs, 1500);
-        } catch (err) {
-          toast("Erro no upload: " + err.message, "error");
-          setDocsBusy(false);
+        let ok = 0,
+          fail = 0;
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          toast(
+            `Enviando ${i + 1}/${files.length}: “${file.name}”…`,
+            "info",
+          );
+          try {
+            const fd = new FormData();
+            fd.append("data", file, file.name);
+            const r = await fetch(`${CONFIG.N8N_BASE}/nldiag-rag-upload`, {
+              method: "POST",
+              body: fd,
+            });
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            ok++;
+          } catch (err) {
+            fail++;
+            toast(`Erro em “${file.name}”: ${err.message}`, "error");
+          }
         }
+        toast(
+          `Upload concluído: ${ok} indexado(s)${fail ? `, ${fail} falha(s)` : ""}.`,
+          fail ? "error" : "success",
+        );
+        setTimeout(loadDocs, 1500);
       });
       /* reprocessar a pasta inteira do Drive */
       $("#btnReindexAll").addEventListener("click", async () => {
@@ -3671,14 +4505,18 @@
         const intro =
           currentView === "gestao"
             ? "Acompanhe os editais aceitos. Peça para mover de etapa, definir responsável ou prazo."
-            : "Pergunte sobre os editais, peça análises ou registre decisões.";
+            : "Pergunte sobre editais, peça análises, consulte bulas e documentos ou registre decisões.";
+        const nome = (ME && (ME.full_name || "").split(" ")[0]) || "";
         const btns = acts
           .map(
             (a, i) =>
               `<button class="qa-btn" data-qa="${i}"><i data-lucide="${a[0]}"></i><span>${esc(a[1])}</span></button>`,
           )
           .join("");
-        return `<div class="empty" style="padding:24px 20px">${esc(intro)}
+        return `<div class="cp-welcome">
+      <div class="cp-avatar"><i data-lucide="bot"></i></div>
+      <h4>Olá${nome ? ", " + esc(nome) : ""}! 👋</h4>
+      <p>${esc(intro)}</p>
     <div class="cp-quick"><div class="qa-title">Ações rápidas · ${esc(pageContextLabel())}</div>${btns}</div></div>`;
       }
       function renderChatEmpty() {
@@ -3744,15 +4582,43 @@
             list
               .map(
                 (s) =>
-                  `<div class="s${s.session_id === curSession ? " active" : ""}" data-s="${esc(s.session_id)}">${esc((stripCtx(s.titulo) || "Conversa").slice(0, 40))}</div>`,
+                  `<div class="s${s.session_id === curSession ? " active" : ""}" data-s="${esc(s.session_id)}"><span class="s-title">${esc((stripCtx(s.titulo) || "Conversa").slice(0, 48))}</span><button class="s-del" data-del="${esc(s.session_id)}" title="Excluir conversa"><i data-lucide="trash-2"></i></button></div>`,
               )
               .join("") ||
             '<div class="muted" style="padding:8px">Sem conversas</div>';
+          if (window.lucide) lucide.createIcons();
           document.querySelectorAll("#sessionList .s").forEach(
             (d) =>
-              (d.onclick = () => {
+              (d.onclick = (ev) => {
+                if (ev.target.closest(".s-del")) return;
                 openSession(d.dataset.s);
                 $("#chatSessions").classList.add("hidden");
+              }),
+          );
+          document.querySelectorAll("#sessionList .s-del").forEach(
+            (b) =>
+              (b.onclick = async (ev) => {
+                ev.stopPropagation();
+                if (
+                  !(await confirmDialog("Excluir esta conversa?", {
+                    okText: "Excluir",
+                    danger: true,
+                  }))
+                )
+                  return;
+                try {
+                  await fetch(
+                    `${CONFIG.N8N_BASE}/nldiag-session?sessionId=${encodeURIComponent(b.dataset.del)}&userId=${encodeURIComponent(ME.id)}`,
+                    { method: "DELETE" },
+                  );
+                  if (b.dataset.del === curSession) {
+                    curSession = newSessionId();
+                    renderChatEmpty();
+                  }
+                  loadSessions();
+                } catch (e2) {
+                  toast("Erro ao excluir: " + e2.message, "error");
+                }
               }),
           );
         } catch (e) {
@@ -3790,10 +4656,42 @@
                 return `<div class="msg ${type}">${type === "a" ? mdRender(c) : esc(c)}</div>`;
               })
               .join("") || '<div class="empty">Conversa vazia.</div>';
+          addCopyButtons();
           $("#msgs").scrollTop = $("#msgs").scrollHeight;
         } catch (e) {
           /* noop */
         }
+      }
+      /* botão "copiar" nas respostas do assistente */
+      function addCopyButtons() {
+        document.querySelectorAll("#msgs .msg.a").forEach((m) => {
+          if (m.querySelector(".msg-copy") || m.querySelector(".typing"))
+            return;
+          const b = el("button", "msg-copy", '<i data-lucide="copy"></i>');
+          b.title = "Copiar resposta";
+          b.onclick = async (ev) => {
+            ev.stopPropagation();
+            try {
+              await navigator.clipboard.writeText(m.innerText);
+              b.innerHTML = '<i data-lucide="check"></i>';
+            } catch (e) {
+              const ta = document.createElement("textarea");
+              ta.value = m.innerText;
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand("copy");
+              ta.remove();
+              b.innerHTML = '<i data-lucide="check"></i>';
+            }
+            if (window.lucide) lucide.createIcons();
+            setTimeout(() => {
+              b.innerHTML = '<i data-lucide="copy"></i>';
+              if (window.lucide) lucide.createIcons();
+            }, 1400);
+          };
+          m.appendChild(b);
+        });
+        if (window.lucide) lucide.createIcons();
       }
       // recarrega a tela atual para o usuário VER as ações que o agente executou
       function refreshCurrentView() {
@@ -3806,16 +4704,23 @@
       }
       async function sendChat() {
         const txt = $("#chatInput").value.trim();
-        if (!txt) return;
+        if (!txt || $("#sendChat").disabled) return;
         if (!curSession) curSession = newSessionId();
-        if ($("#msgs").querySelector(".empty")) $("#msgs").innerHTML = "";
+        if ($("#msgs").querySelector(".empty, .cp-welcome"))
+          $("#msgs").innerHTML = "";
         $("#msgs").appendChild(el("div", "msg u", esc(txt)));
         $("#chatInput").value = "";
         $("#chatInput").style.height = "44px";
         $("#msgs").scrollTop = $("#msgs").scrollHeight;
-        const thinking = el("div", "msg a", "…");
+        const thinking = el(
+          "div",
+          "msg a",
+          '<span class="typing"><i></i><i></i><i></i></span>',
+        );
         $("#msgs").appendChild(thinking);
         $("#msgs").scrollTop = $("#msgs").scrollHeight;
+        const sendBtn = $("#sendChat");
+        sendBtn.disabled = true;
         // contexto da página: vai num campo separado e também prefixado (compat. com o agente).
         // O título/histórico são limpos no display por stripCtx().
         const ctx = pageContextLabel();
@@ -3835,9 +4740,19 @@
           thinking.innerHTML = mdRender((j && j.output) || "(sem resposta)");
           refreshCurrentView();
         } catch (e) {
-          thinking.innerHTML = "Erro: " + esc(e.message);
+          thinking.className = "msg err";
+          thinking.innerHTML =
+            "⚠️ Não consegui responder agora (" +
+            esc(e.message) +
+            "). Tente novamente.";
+        } finally {
+          sendBtn.disabled = false;
+          if (window.lucide) lucide.createIcons();
         }
+        addCopyButtons();
         $("#msgs").scrollTop = $("#msgs").scrollHeight;
+        const i = $("#chatInput");
+        if (i) i.focus();
         loadSessions();
       }
       function autoGrowChatInput() {
@@ -3863,7 +4778,8 @@
         e.target.value = "";
         if (!file) return;
         if (!curSession) curSession = newSessionId();
-        if ($("#msgs").querySelector(".empty")) $("#msgs").innerHTML = "";
+        if ($("#msgs").querySelector(".empty, .cp-welcome"))
+          $("#msgs").innerHTML = "";
         const note = el(
           "div",
           "msg a",

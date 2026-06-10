@@ -55,65 +55,109 @@
       "parameters": {
         "method": "PUT",
         "url": "https://mdw.minha.effecti.com.br/api-integracao/v1/aviso/favoritar-licitacao",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvIiwiYXVkIjpbImh0dHA6Ly9sb2NhbC5hcGkuZWZmZWN0aS5jb20uYnIiLCJodHRwOi8vbG9jYWxob3N0OjMwMDAiXSwic3ViIjoxNzgwMDc3MDA0NjA1LCJjb21wYW55Ijo5OTcwLCJwcm9maWxlcyI6WzFdLCJjYWRhc3RyYXJNaWdyYXRlZCI6ZmFsc2V9.G8o3C5sllEJ7ZTfyPAWjbt3ZtKf3mkQPPvaHojiybN4"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"idLicitacao\": [ {{ $json.idLicitacao }} ]\n}",
-        "options": {}
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
       },
       "id": "c366ce5a-8397-4eff-81b2-460b602827df",
       "name": "Effecti: favoritar",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1152, 624],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "wtbfNPqZjOdhhP2C",
-          "name": "Header Auth account"
-        }
-      }
+      "position": [1152, 624]
     },
     {
       "parameters": {
         "method": "PUT",
         "url": "https://mdw.minha.effecti.com.br/api-integracao/v1/aviso/descartar-licitacao-motivo",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvIiwiYXVkIjpbImh0dHA6Ly9sb2NhbC5hcGkuZWZmZWN0aS5jb20uYnIiLCJodHRwOi8vbG9jYWxob3N0OjMwMDAiXSwic3ViIjoxNzgwMDc3MDA0NjA1LCJjb21wYW55Ijo5OTcwLCJwcm9maWxlcyI6WzFdLCJjYWRhc3RyYXJNaWdyYXRlZCI6ZmFsc2V9.G8o3C5sllEJ7ZTfyPAWjbt3ZtKf3mkQPPvaHojiybN4"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"licitacoesDescarte\": [\n    {\n      \"idLicitacao\": {{ $json.idLicitacao }},\n      \"motivos\": [ { \"motivo\": \"{{ $json.motivoEffecti }}\", \"descricao\": \"{{ ($json.motivo || '').replace(/\\\"/g,'') }}\" } ]\n    }\n  ]\n}",
-        "options": {}
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
       },
       "id": "89b4c842-a749-4881-9b41-428ea57c6fee",
       "name": "Effecti: descartar c/ motivo",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1152, 864],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "wtbfNPqZjOdhhP2C",
-          "name": "Header Auth account"
-        }
-      }
+      "position": [1152, 864]
+    },
+    {
+      "parameters": {
+        "jsCode": "// neverError=true mantém o fluxo vivo mesmo se a Effecti falhar.\n// Aqui decidimos se deu certo (2xx) antes de marcar como sincronizado.\nconst r = $input.first().json;\nconst status = Number(r.statusCode ?? 0);\nconst ok = status >= 200 && status < 300;\nconst body = typeof r.body === 'string' ? r.body : JSON.stringify(r.body ?? '');\nreturn { ok, statusCode: status, effectiBody: (body || '').slice(0, 500) };"
+      },
+      "id": "a1f2c3d4-0001-4a2b-9c3d-effec71c4eca",
+      "name": "Checar Sync",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1360, 752]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1f2c3d4-0002-4a2b-9c3d-effec71c4eca",
+      "name": "Sync OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1552, 752]
     },
     {
       "parameters": {
@@ -125,7 +169,7 @@
       "name": "Mark Synced",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [1392, 752],
+      "position": [1760, 624],
       "credentials": {
         "postgres": {
           "id": "jFjeYH6Nt3aRNkoM",
@@ -143,7 +187,21 @@
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1616, 752]
+      "position": [1968, 624]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": false, \"idLicitacao\": {{ $('Prepare Sync').item.json.idLicitacao }}, \"acao\": \"{{ $('Prepare Sync').item.json.acao }}\", \"statusCode\": {{ $json.statusCode }}, \"error\": {{ JSON.stringify($json.effectiBody || 'Falha na chamada à Effecti') }} }",
+        "options": {
+          "responseCode": 502
+        }
+      },
+      "id": "a1f2c3d4-0003-4a2b-9c3d-effec71c4eca",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1760, 880]
     }
   ],
   "connections": {
@@ -191,7 +249,7 @@
       "main": [
         [
           {
-            "node": "Mark Synced",
+            "node": "Checar Sync",
             "type": "main",
             "index": 0
           }
@@ -202,7 +260,36 @@
       "main": [
         [
           {
+            "node": "Checar Sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checar Sync": {
+      "main": [
+        [
+          {
+            "node": "Sync OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync OK?": {
+      "main": [
+        [
+          {
             "node": "Mark Synced",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
             "type": "main",
             "index": 0
           }
