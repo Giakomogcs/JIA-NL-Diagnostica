@@ -946,6 +946,53 @@
         margin: 16px 0 14px;
         overflow: hidden;
       }
+      .fb-box {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #f8fafc;
+        margin: 14px 0 4px;
+        padding: 0 14px;
+      }
+      .fb-box > summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 12px 2px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .fb-box > summary::-webkit-details-marker {
+        display: none;
+      }
+      .fb-box[open] > summary {
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 12px;
+      }
+      .fb-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding-bottom: 14px;
+      }
+      .fb-full {
+        grid-column: 1 / -1;
+      }
+      .fb-f label,
+      .fb-full label {
+        display: block;
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+      .fb-f input,
+      .fb-full textarea {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .fb-full textarea {
+        resize: vertical;
+        font: inherit;
+      }
       .st-head {
         display: flex;
         align-items: center;
@@ -2474,6 +2521,18 @@
               </div>
             </div>
             <div id="negTable"></div>
+
+            <div class="page-head" style="margin-top: 36px">
+              <div class="ph-icon"><i data-lucide="brain"></i></div>
+              <h2>Regras aprendidas</h2>
+            </div>
+            <p class="page-sub">
+              Regras de negócio escritas pela equipe ao aceitar/recusar editais.
+              Elas entram no prompt da <strong>super triagem</strong> como
+              orientação de curadoria — a regra de ouro do sistema sempre tem
+              precedência. Desative ou exclua o que não fizer mais sentido.
+            </p>
+            <div id="regraTable"></div>
           </section>
 
           <!-- DOCUMENTOS -->
@@ -3023,6 +3082,7 @@
         if (v === "catalogo") {
           loadCatalogo();
           loadNegativos();
+          loadRegras();
         }
         if (v === "documentos") loadDocs();
         if (v === "usuarios") loadUsers();
@@ -3174,11 +3234,28 @@
         const [c, l] = map[st] || ["", "—"];
         return `<span class="tag ${c}">${l}</span>`;
       }
+      // Links do edital: PDF direto (url_documento) + página do portal (url_portal).
+      function editalLinks(o, sep) {
+        const doc = o.url_documento || "";
+        const portal = o.url_portal || o.url_edital || "";
+        const parts = [];
+        if (doc)
+          parts.push(
+            `<a href="${esc(doc)}" target="_blank" rel="noopener">Edital (PDF) ↗</a>`,
+          );
+        if (portal)
+          parts.push(
+            `<a href="${esc(portal)}" target="_blank" rel="noopener">Abrir no portal ↗</a>`,
+          );
+        return parts.length ? parts.join(sep || " · ") : "—";
+      }
       function rowHtml(r) {
         const score = Math.round((r.score_match || 0) * 100);
         const fonte = r.fonte || "effecti";
         const fonteBadge = `<div class="badge src-${esc(fonte)}">${fonte === "licitaja" ? "Licita Já" : "Effecti"}</div>`;
-        const links = `${fonteBadge}${r.url_edital ? `<div><a class="pill-link" href="${esc(r.url_edital)}" target="_blank" rel="noopener">edital ↗</a></div>` : ""}`;
+        const docUrl = r.url_documento || "";
+        const portalUrl = r.url_portal || r.url_edital || "";
+        const links = `${fonteBadge}${docUrl ? `<div><a class="pill-link" href="${esc(docUrl)}" target="_blank" rel="noopener">Edital (PDF) ↗</a></div>` : ""}${portalUrl ? `<div><a class="pill-link" href="${esc(portalUrl)}" target="_blank" rel="noopener">Portal ↗</a></div>` : ""}`;
         const decided = r.status === "aceito" || r.status === "recusado";
         const acts = decided
           ? `<button class="btn-ghost" data-act="open" data-id="${r.id}">Detalhes</button>`
@@ -3189,7 +3266,7 @@
       <div class="ai-callout ${r.status === "sugerido_aceitar" ? "ok" : "warn"}"><span class="ai-ico">${r.status === "sugerido_aceitar" ? "✅" : "🔎"}</span><span>${ai}</span></div></td></tr>`
           : "";
         return `<tr class="edital-row f-${esc(fonte)}${ai ? " has-ai" : ""}" data-open="${r.id}">
-    <td><strong>${esc(r.numero_edital || "—")}</strong><div class="modo">${txt(r.modalidade)}</div></td>
+    <td><strong>${esc(r.numero_edital || "—")}</strong>${r.effecti_lixeira ? ` <span class="badge" style="background:#fef2f2;color:#b91c1c" title="Descartado na lixeira da Effecti">⚠️ lixeira</span>` : r.effecti_favorito ? ` <span class="badge" style="background:#ecfdf5;color:#047857" title="Favoritado na Effecti">⭐</span>` : ""}<div class="modo">${txt(r.modalidade)}</div></td>
     <td>${txt(r.orgao) || "—"}<div class="modo">${txt((r.objeto || "").slice(0, 140)).slice(0, 70)}${stripTags(r.objeto).length > 70 ? "…" : ""}</div></td>
     <td>${esc(r.uf || "—")}</td>
     <td>${fmtDate(r.data_abertura)}</td>
@@ -3435,6 +3512,28 @@
           btn.textContent = old;
         }
       });
+      // (re)inicia o conjunto-alvo e reprocessa em LOTES até concluir,
+      // mantendo cada chamada abaixo do statement timeout do Supabase.
+      // Compartilhado entre o botão "↻ Reprocessar" e o aprendizado por feedback.
+      async function reprocessarTudo(onProgress) {
+        await sb.rpc("nl_rematch_reset", { p_only_pending: true });
+        let total = 0;
+        let restantes = Infinity;
+        let guard = 0;
+        while (restantes > 0 && guard < 200) {
+          guard++;
+          const { data, error } = await sb.rpc("nl_rematch_all", {
+            p_only_pending: true,
+            p_limit: 40,
+          });
+          if (error) throw error;
+          total += data?.reprocessados ?? 0;
+          restantes = data?.restantes ?? 0;
+          if (onProgress) onProgress(total, restantes);
+          if ((data?.reprocessados ?? 0) === 0) break; // evita loop infinito
+        }
+        return total;
+      }
       $("#btnRematch").addEventListener("click", async () => {
         if (
           !(await confirmDialog(
@@ -3447,24 +3546,9 @@
         btn.disabled = true;
         const old = btn.textContent;
         try {
-          // (re)inicia o conjunto-alvo e processa em lotes até concluir,
-          // mantendo cada chamada abaixo do statement timeout do Supabase.
-          await sb.rpc("nl_rematch_reset", { p_only_pending: true });
-          let total = 0;
-          let restantes = Infinity;
-          let guard = 0;
-          while (restantes > 0 && guard < 200) {
-            guard++;
-            const { data, error } = await sb.rpc("nl_rematch_all", {
-              p_only_pending: true,
-              p_limit: 40,
-            });
-            if (error) throw error;
-            total += data?.reprocessados ?? 0;
-            restantes = data?.restantes ?? 0;
-            btn.textContent = `Reprocessando... (${total}${restantes ? ` · faltam ${restantes}` : ""})`;
-            if ((data?.reprocessados ?? 0) === 0) break; // evita loop infinito
-          }
+          const total = await reprocessarTudo((t, r) => {
+            btn.textContent = `Reprocessando... (${t}${r ? ` · faltam ${r}` : ""})`;
+          });
           toast(`Reprocessados ${total} editais.`, "success");
           loadStats();
           loadEditais();
@@ -3476,8 +3560,81 @@
         }
       });
 
+      /* ---- aprendizado por feedback (palavras boas/ruins + regras) ---- */
+      let CAT_LINHAS = [];
+      async function ensureLinhas() {
+        if (CAT_LINHAS.length) return CAT_LINHAS;
+        try {
+          const { data } = await sb.rpc("nl_list_catalogo", {
+            p_only_active: false,
+          });
+          CAT_LINHAS = [
+            ...new Set((data || []).map((c) => c.linha).filter(Boolean)),
+          ];
+        } catch (e) {
+          /* sem linhas: o input de linha vira texto livre */
+        }
+        return CAT_LINHAS;
+      }
+      // Lê o painel "Refinar triagem" do modal atual. Retorna null se vazio.
+      function readFeedback() {
+        const linhaEl = $("#fbLinha");
+        if (!linhaEl) return null;
+        const boas = ($("#fbBoas")?.value || "").trim();
+        const ruins = ($("#fbRuins")?.value || "").trim();
+        const regra = ($("#fbRegra")?.value || "").trim();
+        if (!boas && !ruins && !regra) return null;
+        return {
+          linha: linhaEl.value.trim() || "Hemostasia",
+          palavras_boas: boas,
+          palavras_ruins: ruins,
+          regra,
+        };
+      }
+      // Envia o feedback ao motor de aprendizado, mostra o resumo honesto
+      // (gravados / já existentes / parecidos demais) e reprocessa a base.
+      async function processarAprendizado(fb, editalId, acao) {
+        try {
+          const r = await fetch(`${CONFIG.N8N_BASE}/nldiag-aprendizado`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              edital_id: editalId,
+              linha: fb.linha,
+              acao,
+              palavras_boas: fb.palavras_boas,
+              palavras_ruins: fb.palavras_ruins,
+              regra: fb.regra,
+            }),
+          });
+          const j = await safeJson(r);
+          if (!r.ok || !j) {
+            toast("Aprendizado não pôde ser aplicado (webhook).", "error");
+            return;
+          }
+          const res = j.resultado || {};
+          const g = res.gravados || {};
+          const nGrav =
+            (g.boas?.length || 0) + (g.ruins?.length || 0) + (g.regras || 0);
+          const nExato = (res.descartados_exato || []).length;
+          const sem = res.descartados_semantico || [];
+          let msg = `Aprendizado: ${nGrav} novo(s)`;
+          if (nExato) msg += ` · ${nExato} já existia(m)`;
+          if (sem.length) {
+            const ex = sem[0];
+            msg += ` · ${sem.length} parecido(s) (ex.: “${ex.termo}” ≈ “${ex.parecido_com}” ${ex.similaridade})`;
+          }
+          if (j.dedup_semantica === false)
+            msg += " · (checagem semântica indisponível)";
+          toast(msg, nGrav ? "success" : "");
+          if (nGrav) await reprocessarTudo();
+        } catch (e) {
+          toast("Falha no aprendizado: " + e.message, "error");
+        }
+      }
+
       /* ---- decision ---- */
-      async function decide(editalId, idLic, acao, motivo, motivoEffecti) {
+      async function decide(editalId, idLic, acao, motivo, motivoEffecti, feedback) {
         const { data, error } = await sb.rpc("nl_record_decision", {
           p_edital_id: editalId,
           p_acao: acao,
@@ -3524,10 +3681,11 @@
               : "Edital aceito."
             : "Edital recusado.",
         );
+        if (feedback) await processarAprendizado(feedback, editalId, acao);
         loadStats();
         loadEditais();
       }
-      function openRejectModal(editalId, idLic) {
+      function openRejectModal(editalId, idLic, feedback) {
         openModal(`<header><strong>Recusar edital</strong><button class="close">×</button></header><div class="body">
     <label class="muted">Motivo (Effecti)</label>
     <select id="rjMotivo">${MOTIVOS_EFFECTI.map((m) => `<option value="${m}">${m.replace(/_/g, " ")}</option>`).join("")}</select>
@@ -3545,6 +3703,7 @@
             "recusar",
             $("#rjObs").value.trim(),
             $("#rjMotivo").value,
+            feedback,
           );
       }
 
@@ -3622,6 +3781,16 @@
         const e = data.edital,
           items = data.itens || [];
         const decided = e.status === "aceito" || e.status === "recusado";
+        // linha padrão p/ o painel de aprendizado: 1ª linha compatível da super triagem
+        const linhasCat = !decided ? await ensureLinhas() : [];
+        const defLinha =
+          e.analise_profunda?.itens_compativeis?.find((i) => i.linha_catalogo)
+            ?.linha_catalogo ||
+          linhasCat[0] ||
+          "Hemostasia";
+        const fbLinhaOpts = linhasCat
+          .map((l) => `<option value="${esc(l)}"></option>`)
+          .join("");
         // valor estimado: usa o do edital ou soma os itens (valor_total ou qtd × unitário)
         let valorEst = Number(e.valor_total_estimado) || 0;
         if (valorEst <= 0) {
@@ -3674,8 +3843,9 @@
       <div><div class="k">Valor estimado</div><div class="v">${fmtMoney(valorEst)}</div></div>
       <div><div class="k">Modo sugerido</div><div class="v">${esc(e.modo_participacao || "—")} (score ${Math.round((e.score_match || 0) * 100)}%)</div></div>
       <div><div class="k">Portal</div><div class="v">${esc(e.portal_nome || "—")}</div></div>
-      <div><div class="k">Links</div><div class="v">${e.url_edital ? `<a href="${esc(e.url_edital)}" target="_blank" rel="noopener">edital ↗</a>` : "—"}</div></div>
+      <div><div class="k">Links</div><div class="v">${editalLinks(e)}</div></div>
     </div>
+    ${e.effecti_lixeira || e.effecti_favorito ? `<div class="badge" style="margin-bottom:12px;background:${e.effecti_lixeira ? "#fef2f2;color:#b91c1c" : "#ecfdf5;color:#047857"}">${e.effecti_lixeira ? "⚠️ Descartado na lixeira da Effecti" : "⭐ Favoritado na Effecti"}</div>` : ""}
     <div style="margin-bottom:12px"><div class="k muted">Objeto</div>${txt(e.objeto) || "—"}</div>
     ${
       !decided && (e.status === "sugerido_aceitar" || e.status === "analisando")
@@ -3690,31 +3860,68 @@
     ${items.length ? loteHtml : '<div class="empty">Sem itens.</div>'}
     ${
       !decided
+        ? `<details class="fb-box">
+      <summary>🧠 Refinar triagem (opcional) — ensina o sistema com este edital</summary>
+      <div class="fb-grid">
+        <div class="fb-full modo">As palavras e regras abaixo são checadas contra o que já existe (texto idêntico e por <strong>semelhança de significado</strong>) antes de entrar — nada de duplicar a base. Ao salvar a decisão, as análises são reprocessadas automaticamente.</div>
+        <div class="fb-f"><label>Linha do catálogo</label><input id="fbLinha" list="fbLinhas" value="${esc(defLinha)}" /><datalist id="fbLinhas">${fbLinhaOpts}</datalist></div>
+        <div class="fb-f"><label>Palavras boas (reforçam o match — vírgula)</label><input id="fbBoas" placeholder="ex.: dímero-d, coagulômetro" /></div>
+        <div class="fb-f"><label>Palavras ruins (bloqueiam — vírgula)</label><input id="fbRuins" placeholder="ex.: glicemia, esponja" /></div>
+        <div class="fb-full"><label>Regra / aprendizado (texto livre)</label><textarea id="fbRegra" maxlength="280" rows="2" placeholder="ex.: editais só com fator VII recombinante não são nossos"></textarea></div>
+      </div>
+    </details>`
+        : ""
+    }
+    ${
+      !decided
         ? `<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
       <button class="btn-no" id="edReject">Recusar</button>
       <button class="btn-ok" id="edAccept">Aceitar</button></div>`
         : ""
     }
    </div>`);
-        document.querySelectorAll("[data-toggle]").forEach(
-          (b) =>
-            (b.onclick = async () => {
+        const bindToggle = (b) => {
+          b.onclick = async () => {
+            const novo = b.dataset.cur !== "1";
+            b.disabled = true;
+            try {
               await sb.rpc("nl_set_item_participation", {
                 p_item_id: b.dataset.toggle,
-                p_participa: b.dataset.cur !== "1",
+                p_participa: novo,
               });
-              openEdital(id);
-            }),
-        );
+            } catch (err) {
+              b.disabled = false;
+              toast("Erro ao alterar item: " + err.message, "error");
+              return;
+            }
+            // atualiza só a célula no lugar — sem re-renderizar o modal
+            // (re-render perdia o scroll e voltava ao topo)
+            const td = b.closest("td");
+            if (td) {
+              td.innerHTML =
+                (novo
+                  ? '<span class="tag sug_a">sim</span>'
+                  : '<span class="tag sug_r">não</span>') +
+                `\n          <button class="btn-ghost" style="padding:2px 6px;font-size:11px" data-toggle="${b.dataset.toggle}" data-cur="${novo ? 1 : 0}">⇄</button>`;
+              const nb = td.querySelector("[data-toggle]");
+              if (nb) bindToggle(nb);
+            }
+          };
+        };
+        document.querySelectorAll("[data-toggle]").forEach(bindToggle);
         if (!decided) {
-          $("#edAccept").onclick = () => decide(id, e.id_licitacao, "aceitar");
-          $("#edReject").onclick = () => openRejectModal(id, e.id_licitacao);
+          $("#edAccept").onclick = () =>
+            decide(id, e.id_licitacao, "aceitar", null, null, readFeedback());
+          $("#edReject").onclick = () =>
+            openRejectModal(id, e.id_licitacao, readFeedback());
         }
         const btnST = $("#btnSuperTriagem");
         if (btnST)
           btnST.onclick = async () => {
             btnST.disabled = true;
-            btnST.textContent = "🔬 Analisando… (pode levar 1-2 min)";
+            btnST.textContent = "🔬 Analisando…";
+            // marca de tempo da análise atual; o polling espera ela mudar
+            const prevAt = e.analise_profunda_at || null;
             try {
               const r = await fetch(`${CONFIG.N8N_BASE}/nldiag-super-triagem`, {
                 method: "POST",
@@ -3722,14 +3929,41 @@
                 body: JSON.stringify({ edital_id: id }),
               });
               if (!r.ok) throw new Error("HTTP " + r.status);
-              await r.json();
+              // resposta imediata {status:"processando"} — agora fazemos polling
               toast(
-                "Super triagem concluída — itens e % de match atualizados.",
-                "success",
+                "Super triagem em andamento… acompanhando o resultado.",
+                "info",
               );
-              openEdital(id);
-              loadStats();
-              loadEditais();
+              const POLL_MS = 5000;
+              const MAX_TRIES = 48; // ~4 min
+              let done = false;
+              for (let i = 0; i < MAX_TRIES; i++) {
+                await new Promise((res) => setTimeout(res, POLL_MS));
+                const { data: d2 } = await sb.rpc("nl_get_edital", {
+                  p_edital_id: id,
+                });
+                const at2 = d2 && d2.edital && d2.edital.analise_profunda_at;
+                if (at2 && at2 !== prevAt) {
+                  done = true;
+                  break;
+                }
+              }
+              if (done) {
+                toast(
+                  "Super triagem concluída — itens e % de match atualizados.",
+                  "success",
+                );
+                openEdital(id);
+                loadStats();
+                loadEditais();
+              } else {
+                toast(
+                  "Ainda processando — abra o edital novamente em instantes para ver o resultado.",
+                  "info",
+                );
+                btnST.disabled = false;
+                btnST.textContent = "🔬 Analisar PDF + IA";
+              }
             } catch (err) {
               toast("Erro na super triagem: " + err.message, "error");
               btnST.disabled = false;
@@ -3878,7 +4112,7 @@
       <div><div class="k">Órgão</div><div class="v">${txt(e.orgao) || "—"}</div></div>
       <div><div class="k">UF</div><div class="v">${esc(e.uf || "—")}</div></div>
       <div><div class="k">Data da licitação</div><div class="v">${fmtDate(e.data_abertura)}</div></div>
-      <div><div class="k">Links</div><div class="v">${e.url_edital ? `<a href="${esc(e.url_edital)}" target="_blank" rel="noopener">edital ↗</a>` : "—"}</div></div>
+      <div><div class="k">Links</div><div class="v">${editalLinks(e)}</div></div>
     </div>
     ${e.objeto ? `<div style="margin-bottom:14px"><div class="k muted">Objeto</div>${txt((e.objeto || "").slice(0, 500))}</div>` : ""}
     <h3 style="margin:6px 0 10px">Acompanhamento</h3>
@@ -4132,6 +4366,69 @@
       $("#negTermo").addEventListener("keydown", (e) => {
         if (e.key === "Enter") $("#btnAddNeg").click();
       });
+
+      /* ---- regras aprendidas (feedback da triagem) ---- */
+      async function loadRegras() {
+        const { data, error } = await sb.rpc("nl_list_regras");
+        if (error) {
+          $("#regraTable").innerHTML =
+            `<div class="empty">Erro: ${esc(error.message)}</div>`;
+          return;
+        }
+        const rows = (data || [])
+          .map(
+            (r) => `<tr>
+    <td>${esc(r.linha || "—")}</td>
+    <td><strong>${esc(r.texto)}</strong></td>
+    <td>${esc(r.origem_acao || "—")}</td>
+    <td>${fmtDate(r.created_at)}</td>
+    <td>${r.ativo ? '<span class="tag sug_a">ativa</span>' : '<span class="tag sug_r">inativa</span>'}</td>
+    <td class="row-actions"><button class="btn-ghost" data-toggleregra="${r.id}" data-cur="${r.ativo ? 1 : 0}">${r.ativo ? "desativar" : "ativar"}</button><button class="btn-no" data-delregra="${r.id}">excluir</button></td>
+  </tr>`,
+          )
+          .join("");
+        $("#regraTable").innerHTML = rows
+          ? `<table><thead><tr><th>Linha</th><th>Regra</th><th>Origem</th><th>Criada</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+          : '<div class="empty">Nenhuma regra aprendida ainda. Use “🧠 Refinar triagem” ao aceitar/recusar um edital.</div>';
+        document.querySelectorAll("#regraTable [data-toggleregra]").forEach(
+          (b) =>
+            (b.onclick = async () => {
+              const { error: e2 } = await sb.rpc("nl_admin_set_regra_ativo", {
+                p_id: b.dataset.toggleregra,
+                p_ativo: b.dataset.cur !== "1",
+              });
+              if (e2) {
+                toast("Erro: " + e2.message, "error");
+                return;
+              }
+              toast(
+                b.dataset.cur === "1" ? "Regra desativada." : "Regra ativada.",
+                "success",
+              );
+              loadRegras();
+            }),
+        );
+        document.querySelectorAll("#regraTable [data-delregra]").forEach(
+          (b) =>
+            (b.onclick = async () => {
+              if (
+                await confirmDialog("Excluir esta regra aprendida?", {
+                  okText: "Excluir",
+                })
+              ) {
+                const { error: e2 } = await sb.rpc("nl_admin_delete_regra", {
+                  p_id: b.dataset.delregra,
+                });
+                if (e2) {
+                  toast("Erro: " + e2.message, "error");
+                  return;
+                }
+                toast("Regra excluída.", "success");
+                loadRegras();
+              }
+            }),
+        );
+      }
 
       /* ============ DOCUMENTOS (RAG) ============ */
       let docsBusy = false;

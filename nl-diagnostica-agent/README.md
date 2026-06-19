@@ -30,6 +30,9 @@ nl-diagnostica-agent/
   workspaces/                      # workflows n8n (importar)
 ```
 
+> Arquitetura técnica, diagramas (C4, sequência, entidades) e decisões (ADRs):
+> [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+
 ---
 
 ## Setup

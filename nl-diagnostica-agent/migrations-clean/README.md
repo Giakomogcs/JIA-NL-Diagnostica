@@ -18,6 +18,8 @@ Cada arquivo tem seções `UP` (aplicar) e comentários `DOWN` (reverter).
 | 11    | `011_catalogo_termos.sql`    | `nl_catalogo.termos_fortes` + tabela `nl_match_negativo` (termos de bloqueio) + popular termos fortes por linha                                                                                                                                            |
 | 12    | `012_match_v2.sql`           | `nl_match_edital()` v2: exige termo **forte** p/ participar, bloqueia **negativos**, usa o `objeto` no fallback, `justificativa_ia` explicável. Reprocessar com `nl_rematch_all(true)`                                                                     |
 | 13    | `013_rematch_lotes.sql`      | Reprocesso em **lotes** (corrige statement timeout): flag `nl_edital.rematch_pending`, `nl_match_edital` otimizado, `nl_rematch_reset()`, `nl_rematch_all(p_only_pending, p_limit)` retorna `{reprocessados, restantes}` p/ o front chamar em loop         |
+| …     | `014`–`022`                  | Ver cabeçalho de cada arquivo (pending sync, fontes LicitaJá, super triagem, motor de bulas, precisão do match, parse de datas, anexos, dashboard de estado)                                                                                               |
+| 23    | `023_aprendizado_triagem.sql`| **Aprendizado por feedback**: `nl_norm()`, `nl_triagem_regra`, cache `nl_termo_embedding`, `nl_termo_vizinho()`, `nl_aprendizado_aplicar(jsonb)` (dedup exato + semântico, caps 280/20), `nl_list_regras_ativas()`, `nl_list_regras()`, `nl_admin_set_regra_ativo()`, `nl_admin_delete_regra()`. Rodar **após 022** |
 
 ## Pré‑requisitos
 

@@ -2,7 +2,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## NL Diagnostica — Inteligência (Motor de Bulas + Super Triagem)\n\n**1. POST `/nldiag-catalogo-seed` (MOTOR DE BULAS)** — varre **TODAS** as bulas/documentos do RAG em lotes (texto completo, não amostra), pede ao LLM termos fortes + sinônimos + palavras-chave + **contexto** por linha do catálogo e faz **merge incremental** (`nl_catalogo_merge_termos` — nunca remove). O contexto fica em `nl_catalogo.contexto_bulas` e é usado na Super Triagem. Depois clique em \"↻ Reprocessar análises\".\n\n**2. POST `/nldiag-super-triagem` {edital_id}** — baixa o PDF do edital (`url_edital`), extrai o texto (OCR Azure se for digitalizado), cruza com catálogo (incl. contexto das bulas) + palavras bloqueadas via LLM e grava em `nl_edital.analise_profunda`. O LLM também devolve `itens_avaliacao` (um veredito por item) e `nl_set_analise_profunda` APLICA isso nos itens/lotes (sim/não + % de match) e recalcula o status do edital.\n\n⚠️ Substituir nos nós de OCR: `REPLACE_ME_AZURE_OCR_URL` e `REPLACE_ME_OCR_DEPLOYMENT` (mesmos valores do NLDiag-RAG).\n\nRequer migrations **016**, **017** e **018_match_precisao_super_itens.sql**.",
+        "content": "## NL Diagnostica — Inteligência (Motor de Bulas + Super Triagem)\n\n**1. POST `/nldiag-catalogo-seed` (MOTOR DE BULAS)** — varre **TODAS** as bulas/documentos do RAG em lotes (texto completo, não amostra), pede ao LLM termos fortes + sinônimos + palavras-chave + **contexto** por linha do catálogo e faz **merge incremental** (`nl_catalogo_merge_termos` — nunca remove). O contexto fica em `nl_catalogo.contexto_bulas` e é usado na Super Triagem. Depois clique em \"↻ Reprocessar análises\".\n\n**2. POST `/nldiag-super-triagem` {edital_id}** — responde **na hora** `{status:processando, edital_id}` e roda o resto em segundo plano (sem timeout no front): baixa o PDF direto do edital (`url_documento`, com fallback `url_edital`), extrai o texto (OCR Azure se for digitalizado), cruza com catálogo (incl. contexto das bulas) + palavras bloqueadas via LLM e grava em `nl_edital.analise_profunda`. O front faz polling até `analise_profunda_at` mudar. O LLM também devolve `itens_avaliacao` (um veredito por item) e `nl_set_analise_profunda` APLICA isso nos itens/lotes (sim/não + % de match) e recalcula o status do edital.\n\n⚠️ Substituir nos nós de OCR: `REPLACE_ME_AZURE_OCR_URL` e `REPLACE_ME_OCR_DEPLOYMENT` (mesmos valores do NLDiag-RAG).\n\nRequer migrations **016**, **017** e **018_match_precisao_super_itens.sql**.",
         "height": 360,
         "width": 480
       },
@@ -238,8 +238,20 @@
     },
     {
       "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"processando\", \"edital_id\": $json.edital_id } }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-4001-8001-000000000001",
+      "name": "Respond Processando",
+      "position": [5712, 2400],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  (to_jsonb(e) - 'raw' - 'analise_profunda') AS edital,\n  (SELECT COALESCE(jsonb_agg(jsonb_build_object(\n      'id', i.id, 'item', i.item_num, 'lote', i.lote, 'produto', i.produto_licitado,\n      'qtd', i.quantidade, 'unidade', i.unidade, 'participa', i.participa,\n      'match_score', i.match_score) ORDER BY i.item_num), '[]'::jsonb)\n     FROM nl_edital_item i WHERE i.edital_id = e.id) AS itens,\n  (SELECT COALESCE(jsonb_agg(jsonb_build_object(\n      'linha', c.linha, 'descricao', c.descricao, 'finalidade', c.finalidade,\n      'termos_fortes', c.termos_fortes, 'palavras_chave', c.palavras_chave,\n      'sinonimos', c.sinonimos, 'contexto_bulas', c.contexto_bulas)), '[]'::jsonb)\n     FROM nl_catalogo c WHERE c.ativo) AS catalogo,\n  (SELECT COALESCE(jsonb_agg(n.termo), '[]'::jsonb)\n     FROM nl_match_negativo n WHERE n.ativo) AS negativos\nFROM nl_edital e WHERE e.id = '{{ $json.edital_id }}';",
+        "query": "SELECT\n  (to_jsonb(e) - 'raw' - 'analise_profunda') AS edital,\n  (SELECT COALESCE(jsonb_agg(jsonb_build_object(\n      'id', i.id, 'item', i.item_num, 'lote', i.lote, 'produto', i.produto_licitado,\n      'qtd', i.quantidade, 'unidade', i.unidade, 'participa', i.participa,\n      'match_score', i.match_score) ORDER BY i.item_num), '[]'::jsonb)\n     FROM nl_edital_item i WHERE i.edital_id = e.id) AS itens,\n  (SELECT COALESCE(jsonb_agg(jsonb_build_object(\n      'linha', c.linha, 'descricao', c.descricao, 'finalidade', c.finalidade,\n      'termos_fortes', c.termos_fortes, 'palavras_chave', c.palavras_chave,\n      'sinonimos', c.sinonimos, 'contexto_bulas', c.contexto_bulas)), '[]'::jsonb)\n     FROM nl_catalogo c WHERE c.ativo) AS catalogo,\n  (SELECT COALESCE(jsonb_agg(n.termo), '[]'::jsonb)\n     FROM nl_match_negativo n WHERE n.ativo) AS negativos,\n  nl_list_regras_ativas(NULL, 4000) AS regras\nFROM nl_edital e WHERE e.id = '{{ $json.edital_id }}';",
         "options": {}
       },
       "id": "98fc75aa-964a-422b-a761-40180701f513",
@@ -256,7 +268,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $input.first().json;\nif (!j || !j.edital) throw new Error('Edital não encontrado.');\nconst url = String(j.edital.url_edital || '').trim();\nconst has_url = /^https?:\\/\\//i.test(url);\nreturn [{ json: { edital_id: j.edital.id, url, has_url } }];"
+        "jsCode": "const j = $input.first().json;\nif (!j || !j.edital) throw new Error('Edital não encontrado.');\nconst url = String(j.edital.url_documento || j.edital.url_edital || '').trim();\nconst has_url = /^https?:\\/\\//i.test(url);\nreturn [{ json: { edital_id: j.edital.id, url, has_url } }];"
       },
       "id": "775aea78-af2d-4a5f-8852-85ed54ba4c3e",
       "name": "Preparar URL",
@@ -305,7 +317,7 @@
               "responseFormat": "file"
             }
           },
-          "timeout": 60000
+          "timeout": 45000
         }
       },
       "id": "68db1618-51b7-4e53-9a01-3d75b8753bea",
@@ -456,7 +468,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const base = $('Carregar Edital').first().json;\nconst inp = $input.first().json || {};\nlet texto = inp.texto_edital != null ? inp.texto_edital : (inp.text || inp.ocr_text || '');\ntexto = String(texto || '')\n  .replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/g, ' ')\n  .replace(/[ \\t]+/g, ' ')\n  .slice(0, 60000);\nconst e = base.edital;\nconst temTexto = texto.replace(/\\s+/g, '').length >= 300;\n\nconst prompt = [\n  'Você é o analista sênior de licitações da NL Diagnóstica (diagnóstico in vitro: hemostasia, eletroforese, parasitologia, testes rápidos).',\n  'Faça uma SUPER TRIAGEM deste edital: decida se vale participar, com quais itens, e liste exigências e riscos.',\n  'REGRA DE OURO: só é compatível o que for produto/reagente/equipamento de DIAGNÓSTICO IN VITRO do catálogo abaixo. Veículos, obras, mobiliário, informática, medicamentos, serviços e itens hospitalares gerais NUNCA são compatíveis, mesmo que contenham siglas parecidas (ex.: \"SPRINTER TCA\" é um veículo, não um teste de coagulação).',\n  '',\n  'CATÁLOGO DA EMPRESA (só podemos fornecer o que está aqui):',\n  JSON.stringify(base.catalogo),\n  '',\n  'PALAVRAS BLOQUEADAS (itens com estas palavras estão FORA do escopo):',\n  JSON.stringify(base.negativos),\n  '',\n  'EDITAL:',\n  JSON.stringify({\n    numero: e.numero_edital, orgao: e.orgao, uf: e.uf, modalidade: e.modalidade,\n    data_abertura: e.data_abertura, valor_estimado: e.valor_total_estimado,\n    portal: e.portal_nome, fonte: e.fonte, objeto: e.objeto\n  }),\n  '',\n  'ITENS JÁ EXTRAÍDOS:',\n  JSON.stringify(base.itens),\n  '',\n  'IMPORTANTE: em \"itens_avaliacao\" devolva UMA entrada para CADA item de ITENS JÁ EXTRAÍDOS, copiando exatamente o campo \"id\". participa=true só se o item for realmente fornecível pelo catálogo; match é 0-100. Corrija matches errados da triagem automática.',\n  temTexto\n    ? 'TEXTO COMPLETO DO EDITAL (extraído do PDF — use para achar exigências, prazos, condições e itens não capturados acima):\\n' + texto\n    : 'ATENÇÃO: o PDF do edital não pôde ser obtido. Analise apenas com objeto + itens acima e diga isso nos riscos.',\n  '',\n  'Responda APENAS com um objeto JSON válido, sem markdown, neste formato:',\n  '{\"recomendacao\":\"aceitar|recusar|analisar\",\"confianca\":0,\"resumo\":\"síntese em 2-3 frases\",\"itens_avaliacao\":[{\"id\":\"<copie o campo id do item>\",\"participa\":true,\"match\":0,\"linha_catalogo\":\"linha ou null\",\"motivo\":\"curto\"}],\"itens_compativeis\":[{\"item\":\"nº ou lote\",\"produto\":\"descrição curta\",\"linha_catalogo\":\"linha\",\"motivo\":\"por quê\"}],\"exigencias\":[{\"tipo\":\"prazo_entrega|registro_anvisa|amostra|atestado|garantia|visita_tecnica|documentacao|comodato|outros\",\"descricao\":\"...\"}],\"riscos\":[\"...\"],\"proximos_passos\":[\"...\"]}'\n].join('\\n');\n\nreturn [{ json: { prompt, edital_id: e.id, fonte_analise: temTexto ? 'pdf' : 'itens' } }];"
+        "jsCode": "const base = $('Carregar Edital').first().json;\nconst inp = $input.first().json || {};\nlet texto = inp.texto_edital != null ? inp.texto_edital : (inp.text || inp.ocr_text || '');\ntexto = String(texto || '')\n  .replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/g, ' ')\n  .replace(/[ \\t]+/g, ' ')\n  .slice(0, 60000);\nconst e = base.edital;\nconst temTexto = texto.replace(/\\s+/g, '').length >= 300;\n\nconst prompt = [\n  'Você é o analista sênior de licitações da NL Diagnóstica (diagnóstico in vitro: hemostasia, eletroforese, parasitologia, testes rápidos).',\n  'Faça uma SUPER TRIAGEM deste edital: decida se vale participar, com quais itens, e liste exigências e riscos.',\n  'REGRA DE OURO: só é compatível o que for produto/reagente/equipamento de DIAGNÓSTICO IN VITRO do catálogo abaixo. Veículos, obras, mobiliário, informática, medicamentos, serviços e itens hospitalares gerais NUNCA são compatíveis, mesmo que contenham siglas parecidas (ex.: \"SPRINTER TCA\" é um veículo, não um teste de coagulação).',\n  '',\n  'CATÁLOGO DA EMPRESA (só podemos fornecer o que está aqui):',\n  JSON.stringify(base.catalogo),\n  '',\n  'PALAVRAS BLOQUEADAS (itens com estas palavras estão FORA do escopo):',\n  JSON.stringify(base.negativos),\n  '',\n  ...((base.regras && String(base.regras).trim()) ? ['REGRAS DE NEGÓCIO APRENDIDAS (curadoria humana a partir de decisões anteriores — aplique-as, mas a REGRA DE OURO acima sempre tem precedência):', String(base.regras), ''] : []),\n  'EDITAL:',\n  JSON.stringify({\n    numero: e.numero_edital, orgao: e.orgao, uf: e.uf, modalidade: e.modalidade,\n    data_abertura: e.data_abertura, valor_estimado: e.valor_total_estimado,\n    portal: e.portal_nome, fonte: e.fonte, objeto: e.objeto\n  }),\n  '',\n  'ITENS JÁ EXTRAÍDOS:',\n  JSON.stringify(base.itens),\n  '',\n  'IMPORTANTE: em \"itens_avaliacao\" devolva UMA entrada para CADA item de ITENS JÁ EXTRAÍDOS, copiando exatamente o campo \"id\". participa=true só se o item for realmente fornecível pelo catálogo; match é 0-100. Corrija matches errados da triagem automática.',\n  temTexto\n    ? 'TEXTO COMPLETO DO EDITAL (extraído do PDF — use para achar exigências, prazos, condições e itens não capturados acima):\\n' + texto\n    : 'ATENÇÃO: o PDF do edital não pôde ser obtido. Analise apenas com objeto + itens acima e diga isso nos riscos.',\n  '',\n  'Responda APENAS com um objeto JSON válido, sem markdown, neste formato:',\n  '{\"recomendacao\":\"aceitar|recusar|analisar\",\"confianca\":0,\"resumo\":\"síntese em 2-3 frases\",\"itens_avaliacao\":[{\"id\":\"<copie o campo id do item>\",\"participa\":true,\"match\":0,\"linha_catalogo\":\"linha ou null\",\"motivo\":\"curto\"}],\"itens_compativeis\":[{\"item\":\"nº ou lote\",\"produto\":\"descrição curta\",\"linha_catalogo\":\"linha\",\"motivo\":\"por quê\"}],\"exigencias\":[{\"tipo\":\"prazo_entrega|registro_anvisa|amostra|atestado|garantia|visita_tecnica|documentacao|comodato|outros\",\"descricao\":\"...\"}],\"riscos\":[\"...\"],\"proximos_passos\":[\"...\"]}'\n].join('\\n');\n\nreturn [{ json: { prompt, edital_id: e.id, fonte_analise: temTexto ? 'pdf' : 'itens' } }];"
       },
       "id": "885bc145-95ad-40ac-b612-04e92fb3c7d9",
       "name": "Montar Análise",
@@ -521,16 +533,12 @@
       }
     },
     {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $('Parse Análise').first().json.analise }}",
-        "options": {}
-      },
+      "parameters": {},
       "id": "ae0760a8-dafd-47a4-8512-9a326da3403e",
       "name": "Respond Triagem",
       "position": [9088, 2624],
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1
     }
   ],
   "connections": {
@@ -699,6 +707,11 @@
     "Extrair edital_id": {
       "main": [
         [
+          {
+            "node": "Respond Processando",
+            "type": "main",
+            "index": 0
+          },
           {
             "node": "Carregar Edital",
             "type": "main",

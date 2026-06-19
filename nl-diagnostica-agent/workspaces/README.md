@@ -14,6 +14,7 @@ Importe os JSON abaixo no n8n e configure as credenciais (substitua os `REPLACE_
 | `NLDiag-Chat-GET-Sessions.json`   | HTTP      | `GET /nldiag-sessions`                                                              | Lista conversas do usuário                                                                                                                                                                                                                                                                                                                                                                                               |
 | `NLDiag-Chat-GET-History.json`    | HTTP      | `GET /nldiag-history`                                                               | Histórico de uma conversa                                                                                                                                                                                                                                                                                                                                                                                                |
 | `NLDiag-Chat-DELETE-Session.json` | HTTP      | `DELETE /nldiag-session`                                                            | Apaga uma conversa                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `NLDiag-Aprendizado.json`         | HTTP      | `POST /nldiag-aprendizado`                                                          | **Aprendizado por feedback da triagem**: recebe `{edital_id, linha, acao, palavras_boas, palavras_ruins, regra}`, gera embeddings (Azure, URL `REPLACE_ME_AZURE_EMBEDDINGS_URL`) e chama `nl_aprendizado_aplicar()` (dedup exato + semântico, caps). Responde resumo `{gravados, descartados_exato, descartados_semantico}`. O **reprocesso** é disparado pelo front. Requer migration `023`.                                |
 
 ## Credenciais
 
@@ -23,6 +24,7 @@ Importe os JSON abaixo no n8n e configure as credenciais (substitua os `REPLACE_
 - **Supabase account** (Supabase API) → `REPLACE_ME_SUPABASE_CRED`
 - **Google Drive account** (Google Drive OAuth2) → `REPLACE_ME_GDRIVE_CRED` — necessário para o RAG ler a pasta
 - (OCR PDF digitalizado) `REPLACE_ME_AZURE_OCR_URL` + `REPLACE_ME_OCR_DEPLOYMENT` no nó _OCR via Azure_ / _Prepare PDF Base64_
+- (Aprendizado) `REPLACE_ME_AZURE_EMBEDDINGS_URL` no nó _Embeddings (Azure)_ do `NLDiag-Aprendizado.json` — endpoint de embeddings (mesmo deployment usado no RAG). Sem ele, o aprendizado degrada para dedup **só exato**.
 
 > O token da Effecti vai **apenas** na credencial `Effecti-API`. Nunca commitar.
 
