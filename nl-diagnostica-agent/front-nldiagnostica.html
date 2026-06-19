@@ -3634,7 +3634,14 @@
       }
 
       /* ---- decision ---- */
-      async function decide(editalId, idLic, acao, motivo, motivoEffecti, feedback) {
+      async function decide(
+        editalId,
+        idLic,
+        acao,
+        motivo,
+        motivoEffecti,
+        feedback,
+      ) {
         const { data, error } = await sb.rpc("nl_record_decision", {
           p_edital_id: editalId,
           p_acao: acao,

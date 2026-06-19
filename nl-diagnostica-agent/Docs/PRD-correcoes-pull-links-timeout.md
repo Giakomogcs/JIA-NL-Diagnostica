@@ -12,13 +12,13 @@ Este PRD endereça **três problemas reportados** e **dois bugs descobertos dura
 
 ## 0. Resumo executivo (pós-diagnóstico)
 
-| # | Problema reportado | Causa-raiz **real** (verificada no banco/código) | Correção | Prioridade |
-| - | ------------------ | ------------------------------------------------ | -------- | ---------- |
-| 1 | "Edital não puxou" | **Foi puxado.** Está no banco como `sugerido_recusar`, score 0, porque veio **com 0 itens** e o objeto não casou nenhum termo forte. Ficou **enterrado na pilha de recusados** | Melhorar match de editais sem itens (usar objeto/palavra-chave Effecti) + dar visibilidade | **Alta** |
-| 2 | Links errados (`.../sessao/188384`) | `url_edital` = página de sessão do portal (campo `url` da Effecti). **Mas o `raw.anexos[]` traz os PDFs diretos** (EDITAL.PDF etc.), que hoje são **ignorados** | Mapear `raw.anexos` → link direto do edital; renomear rótulos | **Alta** |
-| 3 | Timeout/fetch em PDF grande | Super Triagem (a) baixa a **URL errada** (HTML da sessão, não PDF) e (b) responde **só no fim** → estoura o proxy (~100s) | Baixar o PDF de `anexos` + tornar a Super Triagem **assíncrona** com polling | **Alta** |
-| 4 | _(bug achado)_ Datas invertidas | `nl_parse_ts` faz `::timestamptz` **antes** do parser BR → `03/07/2026` (3 jul) vira `2026-03-07` (7 mar). DD/MM lido como MM/DD | Tentar `DD/MM/YYYY` **antes** do cast genérico + backfill | **Alta** |
-| 5 | _(achado)_ Edital vinha da lixeira | `raw.naLixeira = true`: o aviso estava **descartado na Effecti** e ainda assim foi ingerido | Ingerir `naLixeira`/`favorito` e refletir/filtrar no painel | Média |
+| #   | Problema reportado                  | Causa-raiz **real** (verificada no banco/código)                                                                                                                               | Correção                                                                                   | Prioridade |
+| --- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ---------- |
+| 1   | "Edital não puxou"                  | **Foi puxado.** Está no banco como `sugerido_recusar`, score 0, porque veio **com 0 itens** e o objeto não casou nenhum termo forte. Ficou **enterrado na pilha de recusados** | Melhorar match de editais sem itens (usar objeto/palavra-chave Effecti) + dar visibilidade | **Alta**   |
+| 2   | Links errados (`.../sessao/188384`) | `url_edital` = página de sessão do portal (campo `url` da Effecti). **Mas o `raw.anexos[]` traz os PDFs diretos** (EDITAL.PDF etc.), que hoje são **ignorados**                | Mapear `raw.anexos` → link direto do edital; renomear rótulos                              | **Alta**   |
+| 3   | Timeout/fetch em PDF grande         | Super Triagem (a) baixa a **URL errada** (HTML da sessão, não PDF) e (b) responde **só no fim** → estoura o proxy (~100s)                                                      | Baixar o PDF de `anexos` + tornar a Super Triagem **assíncrona** com polling               | **Alta**   |
+| 4   | _(bug achado)_ Datas invertidas     | `nl_parse_ts` faz `::timestamptz` **antes** do parser BR → `03/07/2026` (3 jul) vira `2026-03-07` (7 mar). DD/MM lido como MM/DD                                               | Tentar `DD/MM/YYYY` **antes** do cast genérico + backfill                                  | **Alta**   |
+| 5   | _(achado)_ Edital vinha da lixeira  | `raw.naLixeira = true`: o aviso estava **descartado na Effecti** e ainda assim foi ingerido                                                                                    | Ingerir `naLixeira`/`favorito` e refletir/filtrar no painel                                | Média      |
 
 > **Nada é "inventado".** O link vem literalmente do campo `url` da Effecti, e o edital faltante existe no banco — apenas escondido no recusar. O sistema não fabrica dados.
 
@@ -62,11 +62,13 @@ favorito          = false
 
 **T1.1 — Match por objeto/palavra-chave quando não há itens.**
 Ajustar `nl_match_edital` para, quando `itens_total = 0`:
+
 - cruzar o `objeto` **e** o `palavraEncontrada` da Effecti com `palavras_chave`/`sinonimos` (não só `termos_fortes`);
 - nesse caso, classificar como **`analisando`** (revisão humana) em vez de `recusar` automático — evita enterrar editais relevantes sem itens.
 
 **T1.2 — Refletir o estado da Effecti.**
 Ingerir `naLixeira` e `favorito` do `raw` em colunas (`effecti_lixeira BOOLEAN`, `effecti_favorito BOOLEAN`) e:
+
 - mostrar um aviso no painel ("⚠️ descartado na Effecti") quando `effecti_lixeira`;
 - opcionalmente permitir filtrar/ocultar os que vieram da lixeira.
 
@@ -105,10 +107,12 @@ O exemplo do usuário (`licitanet.com.br/sessao/188384`) é o mesmo padrão: o `
 ### 2.2 O que será feito
 
 **T2.1 — Persistir os anexos e eleger o PDF do edital.**
+
 - Adicionar coluna `nl_edital.anexos JSONB` e `nl_edital.url_documento TEXT`.
 - No `nl_upsert_edital`: gravar `raw.anexos`; eleger `url_documento` = o anexo cujo nome casa `EDITAL` (preferência), senão `AVISO_DE_LICITACAO`, senão o primeiro `.PDF`.
 
 **T2.2 — Rótulos corretos no front.**
+
 - "Abrir no portal ↗" → `url_portal` (página de sessão).
 - "Edital (PDF) ↗" → `url_documento` quando existir.
 - Aplicar nos 3 pontos do front (linha da tabela + 2 blocos de detalhe).
@@ -156,6 +160,7 @@ Migração que repreenche `anexos`/`url_documento` a partir de `raw` para os edi
 Em `005_licitacao_schema.sql`, `nl_parse_ts` tenta `p_txt::timestamptz` **antes** do parser BR. Com `DateStyle` padrão (MDY), `"03/07/2026"` é aceito como **MM/DD** (7 de março) e a função **retorna logo**, sem chegar ao `to_timestamp(..., 'DD/MM/YYYY')`.
 
 Evidência no edital 019/2026:
+
 - `dataFinalProposta "03/07/2026"` (3 jul) → `data_abertura 2026-03-07` (7 mar) ❌
 - `dataPublicacao "06/02/2026"` (6 fev) → `data_publicacao 2026-06-02` (2 jun) ❌
 
@@ -195,14 +200,14 @@ Cada passo: migração no Supabase → reimportar workflow no n8n → rebuild do
 
 ## 7. Artefatos a tocar
 
-| Tarefa | Arquivos |
-| ------ | -------- |
-| T4 | nova `019_fix_parse_ts.sql` |
-| T2.1/T2.3 | nova `020_edital_anexos.sql` + `006`/`015` upsert |
-| T2.2 | `front-nldiagnostica.html` |
-| T3 | `workspaces/NLDiag-Inteligencia.json` + `front-nldiagnostica.html` |
-| T1.1 | nova `021_match_sem_itens.sql` (`nl_match_edital`) |
-| T1.2/T1.3 | migração colunas Effecti + `front-nldiagnostica.html` |
+| Tarefa    | Arquivos                                                           |
+| --------- | ------------------------------------------------------------------ |
+| T4        | nova `019_fix_parse_ts.sql`                                        |
+| T2.1/T2.3 | nova `020_edital_anexos.sql` + `006`/`015` upsert                  |
+| T2.2      | `front-nldiagnostica.html`                                         |
+| T3        | `workspaces/NLDiag-Inteligencia.json` + `front-nldiagnostica.html` |
+| T1.1      | nova `021_match_sem_itens.sql` (`nl_match_edital`)                 |
+| T1.2/T1.3 | migração colunas Effecti + `front-nldiagnostica.html`              |
 
 ## 8. Riscos / a confirmar com o usuário
 

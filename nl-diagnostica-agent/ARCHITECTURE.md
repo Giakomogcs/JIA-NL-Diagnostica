@@ -21,14 +21,14 @@ Esse padrão (lógica concentrada em RPCs versionadas por migrations) mantém o
 comportamento consistente independentemente de quem chama, evita duplicar regras entre
 n8n e front, e torna o reprocessamento (match, aprendizado) determinístico.
 
-| Dimensão | Escolha |
-|---|---|
-| Orquestração / IA | n8n (workflows HTTP + cron + AI Agent) |
-| Persistência | Supabase — Postgres 15 + pgvector (HNSW) |
-| Autenticação | Supabase Auth (JWT) + RLS + papéis em `raw_user_meta_data` |
-| Apresentação | SPA single-file servida por webhook n8n (`GET /nldiag-app`) |
-| IA / Embeddings | Azure OpenAI (`gpt-*` chat + `text-embedding-3-small` 1536d) |
-| Integrações | Effecti API, Licita Já API, Google Drive (RAG) |
+| Dimensão          | Escolha                                                      |
+| ----------------- | ------------------------------------------------------------ |
+| Orquestração / IA | n8n (workflows HTTP + cron + AI Agent)                       |
+| Persistência      | Supabase — Postgres 15 + pgvector (HNSW)                     |
+| Autenticação      | Supabase Auth (JWT) + RLS + papéis em `raw_user_meta_data`   |
+| Apresentação      | SPA single-file servida por webhook n8n (`GET /nldiag-app`)  |
+| IA / Embeddings   | Azure OpenAI (`gpt-*` chat + `text-embedding-3-small` 1536d) |
+| Integrações       | Effecti API, Licita Já API, Google Drive (RAG)               |
 
 ## Diagrama de Contexto (C4 — Nível 1)
 
@@ -331,6 +331,7 @@ sequenceDiagram
 ## Decisões de Arquitetura
 
 ### ADR-001: Lógica de negócio em RPCs do Postgres
+
 - **Status:** Aceito
 - **Contexto:** Front e n8n precisam do mesmo comportamento de match/decisão.
 - **Decisão:** Concentrar regras em funções `SECURITY DEFINER`, versionadas por migrations.
@@ -338,6 +339,7 @@ sequenceDiagram
   fica em PL/pgSQL (menos testável que código de aplicação) e exige cuidado com RLS.
 
 ### ADR-002: Reprocesso em lotes (não em transação única)
+
 - **Status:** Aceito
 - **Contexto:** `nl_rematch_all` reprocessava ~350 editais numa transação → statement
   timeout do Supabase.
@@ -346,6 +348,7 @@ sequenceDiagram
 - **Consequências:** Sem timeout; custo de orquestração no cliente.
 
 ### ADR-003: Super-triagem assíncrona
+
 - **Status:** Aceito
 - **Contexto:** OCR/LLM de PDFs estourava o timeout (~100s) do proxy.
 - **Decisão:** Responder `{status:processando}` imediatamente; o front faz polling de
@@ -353,6 +356,7 @@ sequenceDiagram
 - **Consequências:** UX responsiva; complexidade de polling no front.
 
 ### ADR-004: Dedup em 2 camadas no aprendizado
+
 - **Status:** Aceito
 - **Contexto:** Feedback livre da equipe poderia inchar a base de termos/regras.
 - **Decisão:** Dedup exato (`nl_norm`) + semântico (embeddings/cosine) com caps
@@ -360,6 +364,7 @@ sequenceDiagram
 - **Consequências:** Base enxuta e honesta; dependência opcional do Azure embeddings.
 
 ### ADR-005: RAG global sem ACL
+
 - **Status:** Aceito
 - **Contexto:** Equipe pequena; conhecimento (bulas/manuais) é compartilhado.
 - **Decisão:** `nl_match_documents` sem filtro por equipe/categoria; anexos de chat

@@ -34,6 +34,7 @@ descartado e por quê.
 **Arquivo novo:** `migrations-clean/023_aprendizado_triagem.sql` (idempotente; rodar após 022).
 
 1. **Tabela de regras/aprendizados:**
+
    ```sql
    CREATE TABLE IF NOT EXISTS nl_triagem_regra (
      id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -47,10 +48,12 @@ descartado e por quê.
      created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
    );
    ```
+
    RLS: SELECT para `nl_is_member()/nl_is_backend()`; escrita só via RPC `SECURITY DEFINER`.
    Índice ivfflat/hnsw em `embedding` (igual ao RAG de 002) para a busca por similaridade.
 
 2. **Cache de embeddings de termos** (evita re-embedar o catálogo a cada decisão — RNF2):
+
    ```sql
    CREATE TABLE IF NOT EXISTS nl_termo_embedding (
      termo     TEXT PRIMARY KEY,        -- normalizado (lower/trim/unaccent)
@@ -62,10 +65,12 @@ descartado e por quê.
 
 3. **RPC de dedup semântica de termo** — recebe candidato + embedding, devolve o vizinho mais
    próximo e a similaridade dentro do escopo/linha:
+
    ```sql
    -- nl_termo_vizinho(p_linha text, p_escopo text, p_embedding vector)
    --   RETURNS {termo, similaridade}  (maior cosseno no escopo)
    ```
+
    Usa `1 - (embedding <=> p_embedding)` (padrão do `nl_match_documents`, 003).
 
 4. **RPC de persistência de aprendizado** (transação única, idempotente):
@@ -110,11 +115,20 @@ teto.
 **Arquivo novo:** `workspaces/NLDiag-Aprendizado.json` (importar no n8n).
 
 Webhook `POST nldiag-aprendizado`, payload:
+
 ```json
-{ "edital_id":"<uuid>", "linha":"Hemostasia", "acao":"aceitar|recusar",
-  "palavras_boas":["..."], "palavras_ruins":["..."], "regra":"texto livre" }
+{
+  "edital_id": "<uuid>",
+  "linha": "Hemostasia",
+  "acao": "aceitar|recusar",
+  "palavras_boas": ["..."],
+  "palavras_ruins": ["..."],
+  "regra": "texto livre"
+}
 ```
+
 Nós:
+
 1. **Normalizar** candidatos (lower/trim/unaccent; descartar vazios; cap quantidade).
 2. **Embeddings** (OpenAI, dim. 1536 — mesma do RAG): embeda boas + ruins + regra.
    - Se o nó de embeddings falhar → seguir com `dedup_semantica=false` (degradação graciosa,
@@ -125,7 +139,7 @@ Nós:
    (replicar o padrão do `btnRematch`/013).
 5. **(Opcional) re-super-triagem** do `edital_id` (chamar `nldiag-super-triagem`).
 6. **Respond** imediato com `{gravados, descartados_exato, descartados_semantico, reprocessados,
-   restantes}`. Logar resumo (como o "Resumo Motor" de 016).
+restantes}`. Logar resumo (como o "Resumo Motor" de 016).
 
 > Atenção (memória do repo): nas queries Postgres usar `{{ $json.body.X || '' }}` para opcionais
 > e checar corpo não-vazio na resposta (falha silenciosa = execução morreu no meio).
@@ -154,9 +168,9 @@ veredito de um edital de teste após reprocesso.
 **Arquivo:** `front-nldiagnostica.html` (depois rodar o build do README do repo).
 
 1. No modal do edital (e no `openRejectModal`), adicionar bloco **"Refinar triagem (opcional)"**:
-   - inputs de *palavras boas* e *palavras ruins* (chips/textarea, separadas por vírgula);
-   - textarea *regra/aprendizado* (maxlength 280, contador visível);
-   - select de *linha* (default = linha da análise do edital).
+   - inputs de _palavras boas_ e _palavras ruins_ (chips/textarea, separadas por vírgula);
+   - textarea _regra/aprendizado_ (maxlength 280, contador visível);
+   - select de _linha_ (default = linha da análise do edital).
 2. `decide()` passa a, **após** `nl_record_decision` + sync Effecti, chamar
    `POST nldiag-aprendizado` **se** houver algo preenchido; senão, segue o fluxo atual.
 3. Exibir o resumo honesto retornado (toast/box): "3 adicionados · 2 já existiam · 1 parecido

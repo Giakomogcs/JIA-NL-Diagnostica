@@ -45,21 +45,21 @@ melhorando a triagem incrementalmente, com curadoria humana.
 
 ## 3. Objetivos e métricas de sucesso
 
-| Objetivo | Métrica | Alvo |
-| --- | --- | --- |
-| Operador refina a triagem sem editar SQL | Tempo p/ aplicar um aprendizado | ≤ 1 clique no fluxo de decisão |
-| Evitar inchaço do DB por redundância | % de termos/regras candidatos descartados por já existirem (exato ou semântico) | reportado e ≥ 0; **0 duplicados gravados** |
-| Não degradar a precisão | FP no `sugerido_aceitar` após N aprendizados | não piora vs. baseline (PRD-MATCH-EDITAIS-01 §8: ≤ 10%) |
-| Reanálise efetiva | base reprocessada após cada aprendizado aceito | 100% dos pendentes |
-| Rastreabilidade | todo termo/regra gravado guarda origem (edital, usuário, ação) | 100% |
-| Reversibilidade | todo aprendizado pode ser desativado/removido | 100% |
+| Objetivo                                 | Métrica                                                                         | Alvo                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Operador refina a triagem sem editar SQL | Tempo p/ aplicar um aprendizado                                                 | ≤ 1 clique no fluxo de decisão                          |
+| Evitar inchaço do DB por redundância     | % de termos/regras candidatos descartados por já existirem (exato ou semântico) | reportado e ≥ 0; **0 duplicados gravados**              |
+| Não degradar a precisão                  | FP no `sugerido_aceitar` após N aprendizados                                    | não piora vs. baseline (PRD-MATCH-EDITAIS-01 §8: ≤ 10%) |
+| Reanálise efetiva                        | base reprocessada após cada aprendizado aceito                                  | 100% dos pendentes                                      |
+| Rastreabilidade                          | todo termo/regra gravado guarda origem (edital, usuário, ação)                  | 100%                                                    |
+| Reversibilidade                          | todo aprendizado pode ser desativado/removido                                   | 100%                                                    |
 
 ## 4. Escopo
 
 ### 4.1 Dentro do escopo
 
-- **Painel de feedback** no fluxo de aceite/recusa (modal do edital): campos para *palavras
-  boas*, *palavras ruins* e *regra/aprendizado* (texto livre), com **linha do catálogo** alvo.
+- **Painel de feedback** no fluxo de aceite/recusa (modal do edital): campos para _palavras
+  boas_, _palavras ruins_ e _regra/aprendizado_ (texto livre), com **linha do catálogo** alvo.
 - **Guarda anti-duplicação em duas camadas** antes de gravar qualquer termo/regra:
   1. **Exata/normalizada** (lower+trim+sem acento), reaproveitando a lógica do
      `nl_catalogo_merge_termos` (016) e do `ON CONFLICT` do `nl_match_negativo` (011).
@@ -125,7 +125,7 @@ melhorando a triagem incrementalmente, com curadoria humana.
   (<4 chars) vão para `sinonimos` (regra de 018 contra siglas como termo forte). Palavras ruins
   vão para `nl_match_negativo` com `motivo` e `origem`.
 - **RF5 — Regras/aprendizados:** `nl_triagem_regra(id, linha, texto, embedding, peso, ativo,
-  origem_edital_id, created_by, created_at)`. Texto com **cap de tamanho** (ex.: 280 chars) e
+origem_edital_id, created_by, created_at)`. Texto com **cap de tamanho** (ex.: 280 chars) e
   **cap de quantidade ativa por linha** (ex.: 20). Ao exceder o teto, bloquear com mensagem
   pedindo curadoria (não silenciar).
 - **RF6 — Injeção no prompt:** a super triagem (`NLDiag-Inteligencia.json`) lê as regras ativas
@@ -135,8 +135,8 @@ melhorando a triagem incrementalmente, com curadoria humana.
   `nl_rematch_all(true, 40)` até `restantes = 0` (idempotente; nunca toca `aceito`/`recusado` —
   RF8 do PRD de match). Opcionalmente re-disparar a super triagem do edital decidido.
 - **RF8 — Resposta transparente:** o webhook responde `{gravados:{boas,ruins,regras},
-  descartados_exato, descartados_semantico:[{termo, parecido_com, similaridade}], reprocessados,
-  restantes}` para o front exibir um resumo honesto ("3 adicionados, 2 já existiam, 1 parecido
+descartados_exato, descartados_semantico:[{termo, parecido_com, similaridade}], reprocessados,
+restantes}` para o front exibir um resumo honesto ("3 adicionados, 2 já existiam, 1 parecido
   demais com 'fibrinogênio'").
 - **RF9 — Gestão/rollback:** aba Catálogo lista as regras (`nl_list_regras`), permite desativar
   (`nl_admin_set_regra_ativo`) e excluir (`nl_admin_delete_regra`). Palavras boas/ruins já têm
@@ -161,15 +161,15 @@ melhorando a triagem incrementalmente, com curadoria humana.
 
 ## 8. Riscos
 
-| Risco | Mitigação |
-| --- | --- |
-| Dedup semântica frouxa → entra quase-duplicado | Limiar calibrável + reporte visível + cap por família; auditar após N decisões |
-| Dedup semântica rígida → bloqueia termo legítimo | Operador vê "descartado por parecer com X" e pode forçar via aba Catálogo (gravação manual) |
-| Regras conflitantes no prompt | Cap de quantidade + curadoria na aba Catálogo + peso/ativo; regra é *sinal*, não decide sozinha |
-| Embeddings indisponíveis (OpenAI fora) | Fluxo degrada para **dedup exata apenas** + aviso "dedup semântica indisponível" (não bloqueia a decisão) |
-| Reprocesso pesado a cada decisão | Loop em lotes + só pendentes; super triagem opcional (só do edital atual, sob demanda) |
-| Aprendizado reverter precisão dos 018/021 | RF7 não mexe em `aceito`/`recusado`; reauditar com os webhooks de stats/dashboard |
-| Operador despeja texto enorme na regra | Cap 280 chars + cap por linha + validação no boundary (front e RPC) |
+| Risco                                            | Mitigação                                                                                                 |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Dedup semântica frouxa → entra quase-duplicado   | Limiar calibrável + reporte visível + cap por família; auditar após N decisões                            |
+| Dedup semântica rígida → bloqueia termo legítimo | Operador vê "descartado por parecer com X" e pode forçar via aba Catálogo (gravação manual)               |
+| Regras conflitantes no prompt                    | Cap de quantidade + curadoria na aba Catálogo + peso/ativo; regra é _sinal_, não decide sozinha           |
+| Embeddings indisponíveis (OpenAI fora)           | Fluxo degrada para **dedup exata apenas** + aviso "dedup semântica indisponível" (não bloqueia a decisão) |
+| Reprocesso pesado a cada decisão                 | Loop em lotes + só pendentes; super triagem opcional (só do edital atual, sob demanda)                    |
+| Aprendizado reverter precisão dos 018/021        | RF7 não mexe em `aceito`/`recusado`; reauditar com os webhooks de stats/dashboard                         |
+| Operador despeja texto enorme na regra           | Cap 280 chars + cap por linha + validação no boundary (front e RPC)                                       |
 
 ## 9. Critérios de aceite
 
